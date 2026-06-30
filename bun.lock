@@ -15,26 +15,28 @@
     },
     "packages/build-tools": {
       "name": "@datasworn-community/build-tools",
-      "version": "0.0.0",
+      "version": "0.2.0",
       "bin": {
         "datasworn-build": "./dist/cli/datasworn-build.js",
         "datasworn-migrate": "./dist/cli/datasworn-migrate.js",
       },
       "dependencies": {
-        "@datasworn-community/core": "workspace:*",
         "@sinclair/typebox": "0.34.41",
         "ajv": "^8.20.0",
         "ajv-formats": "^3.0.1",
         "lodash-es": "^4.18.1",
         "yaml": "^2.9.0",
       },
+      "devDependencies": {
+        "@datasworn-community/core": "workspace:*",
+      },
       "peerDependencies": {
-        "@datasworn-community/core": "0.0.0",
+        "@datasworn-community/core": "0.2.0",
       },
     },
     "packages/core": {
       "name": "@datasworn-community/core",
-      "version": "0.0.0",
+      "version": "0.2.0",
     },
   },
   "packages": {
