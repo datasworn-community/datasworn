@@ -33,7 +33,7 @@ describe('@datasworn-community/core', () => {
 	})
 
 	test('exports the Datasworn schema version separately from package version', () => {
-		expect(DATASWORN_SCHEMA_VERSION).toBe('0.1.0')
+		expect(DATASWORN_SCHEMA_VERSION).toBe('0.2.0')
 	})
 
 	test('indexes rules packages by ID', () => {
