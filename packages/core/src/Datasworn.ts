@@ -2279,7 +2279,7 @@ export interface Expansion {
 	 * /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
 	 * ```
 	 */
-	datasworn_version: "0.1.0";
+	datasworn_version: "0.2.0";
 	description?: MarkdownString;
 	/**
 	 * The title of the source document.
@@ -4349,7 +4349,7 @@ export interface Ruleset {
 	 * /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
 	 * ```
 	 */
-	datasworn_version: "0.1.0";
+	datasworn_version: "0.2.0";
 	description?: MarkdownString;
 	/**
 	 * The title of the source document.

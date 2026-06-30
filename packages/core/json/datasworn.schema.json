@@ -2,7 +2,7 @@
 	"$schema": "http://json-schema.org/draft-07/schema#",
 	"$id": "https://ironswornrpg.com/datasworn.schema.json",
 	"$ref": "#/definitions/RulesPackage",
-	"title": "Datasworn v0.1.0",
+	"title": "Datasworn v0.2.0",
 	"description": "Describes game rules compatible with the Ironsworn tabletop role-playing game by Shawn Tomkin.",
 	"definitions": {
 		"ActionRollMethod": {
@@ -5314,7 +5314,7 @@
 				"datasworn_version": {
 					"description": "The version of the Datasworn format used by this data.",
 					"pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
-					"const": "0.1.0",
+					"const": "0.2.0",
 					"type": "string"
 				},
 				"description": {
@@ -9128,7 +9128,7 @@
 				"datasworn_version": {
 					"description": "The version of the Datasworn format used by this data.",
 					"pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
-					"const": "0.1.0",
+					"const": "0.2.0",
 					"type": "string"
 				},
 				"description": {
