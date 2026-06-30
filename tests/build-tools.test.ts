@@ -6,6 +6,7 @@ import path from 'node:path'
 import { DATASWORN_SCHEMA_VERSION } from '@datasworn-community/core'
 import {
 	buildRulesPackage,
+	extractIdRefs,
 	loadCoreSchema,
 	resolveCoreSchemaPath
 } from '@datasworn-community/build-tools'
@@ -71,5 +72,40 @@ describe('@datasworn-community/build-tools', () => {
 		expect(result.files).toHaveLength(1)
 		expect(output._id).toBe('fixture')
 		expect(output.datasworn_version).toBe(DATASWORN_SCHEMA_VERSION)
+	})
+})
+
+describe('extractIdRefs', () => {
+	test('collects ID references from reference fields', () => {
+		const refs = extractIdRefs({
+			oracle: 'oracle_rollable:classic/action',
+			nested: { enhances: ['move:delve/secret_of_the_site'] }
+		})
+
+		expect([...refs].sort()).toEqual([
+			'move:delve/secret_of_the_site',
+			'oracle_rollable:classic/action'
+		])
+	})
+
+	test('extracts IDs embedded in markdown links and macros', () => {
+		const refs = extractIdRefs({
+			text: 'Roll [the action oracle](datasworn:oracle_rollable:classic/action) then {{table>oracle_rollable:classic/theme}}.'
+		})
+
+		expect(refs.has('oracle_rollable:classic/action')).toBe(true)
+		expect(refs.has('oracle_rollable:classic/theme')).toBe(true)
+	})
+
+	test('ignores own _id, plain-text/url fields, and non-ID strings', () => {
+		const refs = extractIdRefs({
+			_id: 'oracle_rollable:classic/action',
+			name: 'oracle_rollable:classic/action',
+			url: 'https://example.com/a:b/c',
+			label: 'Pick one',
+			summary: 'No identifiers here.'
+		})
+
+		expect(refs.size).toBe(0)
 	})
 })
