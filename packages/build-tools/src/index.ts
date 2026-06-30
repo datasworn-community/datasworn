@@ -15,3 +15,8 @@ export {
 	createDataswornValidators,
 	type SchemaValidator
 } from './validators.js'
+export {
+	extractIdRefs,
+	validateIdRefs,
+	type IdRefReport
+} from './id-references.js'
