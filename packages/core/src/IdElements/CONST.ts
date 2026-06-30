@@ -1,6 +1,3 @@
-export const VERSION = '0.1.0' as const
-export type VERSION = typeof VERSION
-
 /** The maximum depth for nesting collections, relative to the root dictionary for its type */
 export const COLLECTION_DEPTH_MAX = 4 as const
 export type COLLECTION_DEPTH_MAX = typeof COLLECTION_DEPTH_MAX

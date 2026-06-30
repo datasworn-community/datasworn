@@ -5,6 +5,7 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import {
+	DATASWORN_SCHEMA_VERSION,
 	DataswornTree,
 	IdParser,
 	type Datasworn,
@@ -31,11 +32,15 @@ describe('@datasworn-community/core', () => {
 		expect(moveId).toBe('move:starforged/combat/strike')
 	})
 
+	test('exports the Datasworn schema version separately from package version', () => {
+		expect(DATASWORN_SCHEMA_VERSION).toBe('0.1.0')
+	})
+
 	test('indexes rules packages by ID', () => {
 		const rulesPackage = {
 			_id: 'starforged',
 			type: 'ruleset',
-			datasworn_version: '0.1.0',
+			datasworn_version: DATASWORN_SCHEMA_VERSION,
 			title: 'Starforged',
 			authors: [],
 			date: '2026-01-01',
