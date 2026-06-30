@@ -16,9 +16,10 @@
   "scripts": {
     "build": "tsc -b tsconfig.build.json && bun ./scripts/writePackageMarkers.ts",
     "check": "tsc --noEmit",
+    "check:schema-version": "bun ./scripts/checkSchemaVersion.ts",
     "lint": "eslint . --quiet",
     "test": "bun test",
-    "validate": "bun run check && bun run lint && bun test"
+    "validate": "bun run check && bun run lint && bun run check:schema-version && bun test"
   },
   "repository": {
     "type": "git",
