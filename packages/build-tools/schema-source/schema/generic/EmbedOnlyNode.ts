@@ -1,5 +1,7 @@
 import { type ObjectOptions, type TObject, Type } from '@sinclair/typebox'
-import type TypeId from '../../pkg-core/IdElements/TypeId.js'
+import { IdElements } from '@datasworn-community/core'
+
+import type TypeId = IdElements.TypeId
 import { pascalCase } from '../utils/string.js'
 import { IdNode } from './IdNode.js'
 

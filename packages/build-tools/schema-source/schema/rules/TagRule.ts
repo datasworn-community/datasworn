@@ -1,5 +1,5 @@
 import { type Static, Type } from '@sinclair/typebox'
-import TypeId from '../../pkg-core/IdElements/TypeId.js'
+import { IdElements } from '@datasworn-community/core'
 import JtdType from '../../scripts/json-typedef/typedef.js'
 import Id, { RulesetId } from '../common/Id.js'
 import { DiceExpression } from '../common/Rolls.js'
@@ -8,6 +8,8 @@ import { JsonTypeDef } from '../Symbols.js'
 import { Nullable, UnionEnum } from '../Utils.js'
 import { type PascalCase, pascalCase } from '../utils/string.js'
 import { TagSchema } from './TagSchema.js'
+
+import TypeId = IdElements.TypeId
 
 type _NodeSchemaName<T extends string> = PascalCase<T>
 type EmbeddedNodeSchemaName<T extends string> = `Embedded${PascalCase<T>}`

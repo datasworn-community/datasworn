@@ -6,7 +6,9 @@ import {
 	Type
 } from '@sinclair/typebox'
 import type { SetRequired } from 'type-fest'
-import type TypeId from '../../pkg-core/IdElements/TypeId.js'
+import { IdElements } from '@datasworn-community/core'
+
+import type TypeId = IdElements.TypeId
 import { CssColor, SvgImageUrl, WebpImageUrl } from '../common/Metadata.js'
 import { SourcedNode } from '../generic/SourcedNode.js'
 import { Discriminable } from '../Utils.js'

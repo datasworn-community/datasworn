@@ -1,6 +1,8 @@
 import { CloneType, type ObjectOptions, type TObject } from '@sinclair/typebox'
 import type { SetRequired } from 'type-fest'
-import type TypeId from '../../pkg-core/IdElements/TypeId.js'
+import { IdElements } from '@datasworn-community/core'
+
+import type TypeId = IdElements.TypeId
 import { setSourceDataSchema } from '../Utils.js'
 import { pascalCase } from '../utils/string.js'
 import { PrimarySubtypeNode, PrimaryTypeNode } from './PrimaryTypeNode.js'
