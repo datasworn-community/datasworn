@@ -23,6 +23,7 @@
   "files": [
     "dist",
     "json",
+    "migration",
     "README.md"
   ],
   "repository": {

@@ -22,6 +22,10 @@ dual ESM/CJS publishing. `Builders` and `Validators` are intentionally not
 imported into `@datasworn-community/core`; they move to
 `@datasworn-community/build-tools` in Ticket 1.2.
 
+Ticket 1.2 imports the generated upstream JSON schemas and current migration map
+into `@datasworn-community/core`, then adapts the build/migration tool surface
+for the split package layout in `@datasworn-community/build-tools`.
+
 The following upstream areas are planned sources for later Phase 1 tickets and
 must be recorded here when copied or adapted:
 
@@ -39,10 +43,13 @@ must be recorded here when copied or adapted:
 | `src/pkg-core/TypeNode.ts` | `packages/core/src/TypeNode.ts` | 1.1 | Yes |
 | `src/pkg-core/Utils/` | `packages/core/src/Utils/` | 1.1 | Yes |
 | `src/pkg-core/mergeExpansion.ts` | `packages/core/src/mergeExpansion.ts` | 1.1 | Yes |
-| `src/schema/` | `packages/build-tools/src/schema/` | 1.2 | No |
-| `src/scripts/` | `packages/build-tools/src/` and `scripts/` | 1.2 | No |
-| `src/pkg-core/Builders/` | `packages/build-tools/src/` | 1.2 | No |
-| `src/pkg-core/Validators/` | `packages/build-tools/src/` | 1.2 | No |
+| `datasworn/datasworn.schema.json` | `packages/core/json/datasworn.schema.json` | 1.2 | Yes |
+| `datasworn/datasworn-source.schema.json` | `packages/core/json/datasworn-source.schema.json` | 1.2 | Yes |
+| `src/migration/history/0.1.0/id_regex_map.json` | `packages/core/migration/0.1.0/id_regex_map.json` | 1.2 | Yes |
+| `src/schema/` | `packages/build-tools/schema-source/schema/` | 1.2 | Yes |
+| `src/scripts/` | `packages/build-tools/src/` and `scripts/` | 1.2 | Adapted |
+| `src/pkg-core/Builders/` | `packages/build-tools/src/rules-package-builder.ts` | 1.2 | Adapted |
+| `src/pkg-core/Validators/` | `packages/build-tools/src/validators.ts` | 1.2 | Adapted |
 
 Official content source data and community content are intentionally not part of
 this repository. They move in later restructure phases.
