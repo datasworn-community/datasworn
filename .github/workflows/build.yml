@@ -1,0 +1,11 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    uses: datasworn-community/.github/.github/workflows/build.yml@v1

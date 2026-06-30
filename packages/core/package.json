@@ -1,0 +1,43 @@
+{
+  "name": "@datasworn-community/core",
+  "version": "0.0.0",
+  "description": "Core Datasworn runtime types, schema artifacts, and ID helpers.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "json",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/datasworn-community/datasworn.git",
+    "directory": "packages/core"
+  },
+  "author": {
+    "name": "rsek",
+    "url": "https://github.com/rsek"
+  },
+  "contributors": [
+    {
+      "name": "tbsvttr",
+      "url": "https://github.com/tbsvttr"
+    },
+    {
+      "name": "Datasworn Community",
+      "url": "https://github.com/datasworn-community"
+    }
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/datasworn-community/datasworn/issues"
+  }
+}

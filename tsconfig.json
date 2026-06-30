@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "allowImportingTsExtensions": false,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "paths": {
+      "@datasworn-community/core": ["./packages/core/src/index.ts"],
+      "@datasworn-community/build-tools": ["./packages/build-tools/src/index.ts"]
+    },
+    "resolveJsonModule": true,
+    "strict": true,
+    "target": "ES2022",
+    "types": ["bun"]
+  },
+  "include": ["packages/*/src/**/*.ts", "tests/**/*.ts"]
+}

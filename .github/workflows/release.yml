@@ -1,0 +1,11 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    uses: datasworn-community/.github/.github/workflows/release.yml@v1
+    secrets: inherit

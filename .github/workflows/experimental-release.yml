@@ -1,0 +1,10 @@
+name: Experimental Release
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, labeled, synchronize, closed]
+
+jobs:
+  experimental-release:
+    uses: datasworn-community/.github/.github/workflows/experimental-release.yml@v1
+    secrets: inherit

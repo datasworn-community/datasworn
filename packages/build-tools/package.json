@@ -1,0 +1,49 @@
+{
+  "name": "@datasworn-community/build-tools",
+  "version": "0.0.0",
+  "description": "Build and migration tools for Datasworn source packages.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "datasworn-build": "./dist/cli/datasworn-build.js",
+    "datasworn-migrate": "./dist/cli/datasworn-migrate.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/datasworn-community/datasworn.git",
+    "directory": "packages/build-tools"
+  },
+  "author": {
+    "name": "rsek",
+    "url": "https://github.com/rsek"
+  },
+  "contributors": [
+    {
+      "name": "tbsvttr",
+      "url": "https://github.com/tbsvttr"
+    },
+    {
+      "name": "Datasworn Community",
+      "url": "https://github.com/datasworn-community"
+    }
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@datasworn-community/core": "workspace:*"
+  },
+  "bugs": {
+    "url": "https://github.com/datasworn-community/datasworn/issues"
+  }
+}
