@@ -6,5 +6,13 @@ on:
 
 jobs:
   experimental-release:
+    # The repo's default workflow token is read-only, and a reusable workflow's
+    # permissions are capped by the caller's. Grant what the reusable
+    # experimental-release workflow needs: id-token for npm provenance/OIDC,
+    # pull-requests to post canary comments, contents to check out.
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
     uses: datasworn-community/.github/.github/workflows/experimental-release.yml@v1
     secrets: inherit
