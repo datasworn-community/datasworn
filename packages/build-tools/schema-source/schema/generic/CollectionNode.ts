@@ -9,7 +9,7 @@ import {
 	Type
 } from '@sinclair/typebox'
 import type { SetRequired } from 'type-fest'
-import TypeId from '../../pkg-core/IdElements/TypeId.js'
+import { IdElements } from '@datasworn-community/core'
 import {
 	CollectionsKey,
 	ContentsKey,
@@ -19,6 +19,8 @@ import * as Text from '../common/Text.js'
 import { setSourceOptional } from '../Utils.js'
 import { Assign } from '../utils/FlatIntersect.js'
 import { pascalCase } from '../utils/string.js'
+
+import TypeId = IdElements.TypeId
 import { Dictionary, type TDictionary } from './Dictionary.js'
 import { PrimarySubtypeNode, PrimaryTypeNode } from './PrimaryTypeNode.js'
 

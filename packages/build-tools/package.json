@@ -52,7 +52,10 @@
     "@datasworn-community/core": "0.2.2"
   },
   "devDependencies": {
-    "@datasworn-community/core": "workspace:*"
+    "@datasworn-community/core": "workspace:*",
+    "json-schema": "^0.4.0",
+    "json-schema-library": "^11.4.1",
+    "type-fest": "^5.6.0"
   },
   "bugs": {
     "url": "https://github.com/datasworn-community/datasworn/issues"
