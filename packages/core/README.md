@@ -3,5 +3,6 @@
 Runtime types, schema artifacts, ID helpers, and migrations shared by Datasworn
 consumers.
 
-This package is currently scaffolded for Phase 1. Upstream implementation files
-will be copied or adapted in Ticket 1.1 and recorded in `../../PROVENANCE.md`.
+`DATASWORN_SCHEMA_VERSION` is the data/schema format version used in
+`datasworn_version` fields. It is separate from this package's npm version in
+`package.json`.
