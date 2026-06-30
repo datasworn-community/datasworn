@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
     "allowImportingTsExtensions": false,
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "noEmit": true,
@@ -13,5 +15,5 @@
     "target": "ES2022",
     "types": ["bun"]
   },
-  "include": ["packages/*/src/**/*.ts", "tests/**/*.ts"]
+  "include": ["packages/*/src/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts"]
 }
