@@ -7,5 +7,11 @@ on:
 
 jobs:
   release:
+    # The repo's default workflow token is read-only, and a reusable workflow's
+    # permissions are capped by the caller's. Grant what the reusable release
+    # workflow needs: id-token for npm provenance/OIDC, contents to check out.
+    permissions:
+      contents: read
+      id-token: write
     uses: datasworn-community/.github/.github/workflows/release.yml@v1
     secrets: inherit
