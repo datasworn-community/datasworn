@@ -33,6 +33,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build
+        run: bun run build
+
+      - name: Validate
+        run: bun run validate
+
       - name: Plan release
         id: plan
         env:
@@ -40,14 +46,6 @@ jobs:
           RELEASE_BASE_SHA: ${{ github.event.before }}
           RELEASE_HEAD_SHA: ${{ github.sha }}
         run: bun ./scripts/releasePlan.ts plan-main
-
-      - name: Build
-        if: steps.plan.outputs.release == 'true'
-        run: bun run build
-
-      - name: Validate
-        if: steps.plan.outputs.release == 'true'
-        run: bun run validate
 
       - name: Configure Git
         if: steps.plan.outputs.release == 'true'
