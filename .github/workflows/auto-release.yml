@@ -11,10 +11,11 @@ concurrency:
 jobs:
   release:
     name: Plan, tag, and release
-    if: ${{ !startsWith(github.event.head_commit.message, 'chore: release v') }}
+    if: "${{ !startsWith(github.event.head_commit.message, 'chore: release v') }}"
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
       pull-requests: read
 
     steps:
@@ -59,3 +60,26 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: bunx release-it "${{ steps.plan.outputs.version }}" --ci
+
+      - name: Setup Node for npm publishing
+        if: steps.plan.outputs.release == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org/
+          package-manager-cache: false
+
+      - name: Setup npm
+        if: steps.plan.outputs.release == 'true'
+        run: |
+          npm install --global npm@latest
+          npm config set registry https://registry.npmjs.org/
+          npm --version
+
+      - name: Publish packages
+        if: steps.plan.outputs.release == 'true'
+        uses: datasworn-community/.github/.github/actions/publish-workspaces@v1
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        with:
+          mode: release
