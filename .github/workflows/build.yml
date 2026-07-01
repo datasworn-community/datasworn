@@ -9,3 +9,32 @@ on:
 jobs:
   build:
     uses: datasworn-community/.github/.github/workflows/build.yml@v1
+
+  release-policy:
+    name: Release policy
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .tool-versions
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check release policy
+        env:
+          PR_LABELS_JSON: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          RELEASE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          RELEASE_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bun ./scripts/releasePlan.ts check-pr
