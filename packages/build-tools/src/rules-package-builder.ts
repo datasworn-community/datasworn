@@ -9,6 +9,10 @@ import {
 import YAML from 'yaml'
 
 import {
+	validateIdRefs,
+	type IdRefReport
+} from './id-references.js'
+import {
 	createDataswornValidators,
 	type DataswornValidators
 } from './validators.js'
@@ -21,6 +25,12 @@ export interface RulesPackageBuildConfig {
 	paths?: {
 		source: string
 	}
+	/**
+	 * IDs of other rules packages this one references (e.g. an expansion's
+	 * ruleset). The multi-package builder preloads their built output so
+	 * cross-package ID references resolve; declaration order does not matter.
+	 */
+	dependencies?: string[]
 }
 
 export interface BuildRulesPackageOptions {
@@ -29,12 +39,19 @@ export interface BuildRulesPackageOptions {
 		Datasworn.RulesPackage,
 		DataswornSource.RulesPackage
 	>
+	/**
+	 * Already-built dependency packages to include in the ID-reference
+	 * validation tree, so references from this package into them resolve.
+	 */
+	dependencies?: readonly Datasworn.RulesPackage[]
 }
 
 export interface RulesPackageBuildResult {
 	data: Datasworn.RulesPackage
 	files: string[]
 	outFile: string
+	/** Result of validating this package's ID references against the tree. */
+	idRefs: IdRefReport
 }
 
 type JsonObject = Record<string, unknown>
@@ -133,10 +150,26 @@ export async function buildRulesPackage(
 	const data = merged as unknown as Datasworn.RulesPackage
 	validators.output(data)
 
+	// Validate ID references against a tree of this package plus any preloaded
+	// dependencies. This catches cross-package references (e.g. an expansion
+	// pointing at its ruleset) that AJV structural validation cannot.
+	const tree: Record<string, Datasworn.RulesPackage> = {
+		[normalizedConfig.id]: data
+	}
+	for (const dependency of options.dependencies ?? [])
+		tree[dependency._id] = dependency
+
+	const idRefs = validateIdRefs(data, tree)
+	const unresolved = [...idRefs.invalid, ...idRefs.unreachable]
+	if (unresolved.length > 0)
+		throw new Error(
+			`${normalizedConfig.id}: ${unresolved.length} unresolved ID reference(s):\n  ${unresolved.join('\n  ')}`
+		)
+
 	const packageOutDir = path.join(outDir, normalizedConfig.id)
 	const outFile = path.join(packageOutDir, `${normalizedConfig.id}.json`)
 	await mkdir(packageOutDir, { recursive: true })
 	await writeFile(outFile, `${JSON.stringify(sortValue(data), undefined, 2)}\n`)
 
-	return { data, files, outFile }
+	return { data, files, outFile, idRefs }
 }
