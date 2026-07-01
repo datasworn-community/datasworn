@@ -3,12 +3,16 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { DATASWORN_SCHEMA_VERSION } from '@datasworn-community/core'
+import {
+	DATASWORN_SCHEMA_VERSION,
+	type Datasworn
+} from '@datasworn-community/core'
 import {
 	buildRulesPackage,
 	extractIdRefs,
 	loadCoreSchema,
-	resolveCoreSchemaPath
+	resolveCoreSchemaPath,
+	validateIdRefs
 } from '@datasworn-community/build-tools'
 
 describe('@datasworn-community/build-tools', () => {
@@ -107,5 +111,33 @@ describe('extractIdRefs', () => {
 		})
 
 		expect(refs.size).toBe(0)
+	})
+})
+
+describe('validateIdRefs (cross-package preloading)', () => {
+	// A minimal traversable tree: a `rarity` is a non-collectable node at
+	// `rarities.<key>`, addressable as `rarity:base/relic`.
+	const dependency = {
+		_id: 'base',
+		type: 'ruleset',
+		rarities: { relic: { _id: 'rarity:base/relic' } }
+	} as unknown as Datasworn.RulesPackage
+	const referencing = {
+		description: 'See [the relic](datasworn:rarity:base/relic).'
+	}
+
+	test('references resolve when the dependency package is in the tree', () => {
+		const report = validateIdRefs(referencing, { base: dependency })
+
+		expect([...report.valid]).toEqual(['rarity:base/relic'])
+		expect(report.unreachable.size).toBe(0)
+		expect(report.invalid.size).toBe(0)
+	})
+
+	test('references are unreachable without the dependency', () => {
+		const report = validateIdRefs(referencing, {})
+
+		expect(report.unreachable.has('rarity:base/relic')).toBe(true)
+		expect(report.valid.size).toBe(0)
 	})
 })
