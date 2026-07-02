@@ -1,6 +1,6 @@
 {
   "name": "@datasworn-community/repo",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
   "description": "Workspace for Datasworn Community core and build tools packages.",
   "type": "module",
