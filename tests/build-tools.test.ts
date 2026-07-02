@@ -17,6 +17,10 @@ import {
 } from '@datasworn-community/build-tools'
 
 const schemaLine = DATASWORN_SCHEMA_VERSION.split('.').slice(0, 2).join('.')
+const repository = {
+	type: 'git',
+	url: 'git+https://github.com/datasworn-community/fixture-content.git'
+}
 
 describe('@datasworn-community/build-tools', () => {
 	test('loads JSON schemas shipped by core', async () => {
@@ -259,6 +263,7 @@ describe('buildContentPackages', () => {
 		const result = await buildContentPackages({
 			outDir,
 			packageOutDir,
+			repository,
 			packages: [
 				{
 					id: 'expansion',
@@ -293,6 +298,7 @@ describe('buildContentPackages', () => {
 			dependencies: Record<string, string>
 			exports: Record<string, unknown>
 			files: string[]
+			repository: typeof repository
 		}
 		const expansionIndex = await readFile(
 			path.join(packageOutDir, 'expansion', 'index.js'),
@@ -312,8 +318,17 @@ describe('buildContentPackages', () => {
 		expect(expansionPackage.exports).toMatchObject({
 			'./icons/*': './icons/*'
 		})
+		expect(expansionPackage.repository).toEqual(repository)
 		expect(expansionIndex).toContain("./json/expansion.json")
 		expect(expansionAsset).toBe('<svg />\n')
+	})
+
+	test('requires repository metadata for generated package manifests', async () => {
+		await expect(
+			buildContentPackages({
+				packages: []
+			} as any)
+		).rejects.toThrow('Multi-package content build config requires repository')
 	})
 
 	test('validates optional in-repo references against the full package tree', async () => {
@@ -377,6 +392,7 @@ describe('buildContentPackages', () => {
 		const result = await buildContentPackages({
 			outDir: path.join(workDir, 'datasworn'),
 			packageOutDir: path.join(workDir, 'packages'),
+			repository,
 			packages: [
 				{
 					id: 'expansion',

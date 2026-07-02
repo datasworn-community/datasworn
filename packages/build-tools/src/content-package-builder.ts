@@ -23,8 +23,15 @@ interface PackageJson {
 	exports: Record<string, unknown>
 	files: string[]
 	dependencies: Record<string, string>
+	repository: PackageRepository
 	license?: string
 	private?: boolean
+}
+
+export interface PackageRepository {
+	type: string
+	url: string
+	directory?: string
 }
 
 export interface ContentPackageDependencyConfig {
@@ -68,6 +75,7 @@ export interface ContentPackageBuildConfig extends RulesPackageBuildConfig {
 export interface MultiPackageBuildConfig {
 	outDir?: string
 	packageOutDir?: string
+	repository: PackageRepository
 	packages: ContentPackageBuildConfig[]
 }
 
@@ -120,6 +128,25 @@ function assertNoDuplicatePackageIds(packages: readonly ContentPackageBuildConfi
 		if (seen.has(config.id)) throw new Error(`Duplicate package id: ${config.id}`)
 		seen.add(config.id)
 	}
+}
+
+function assertPackageRepository(
+	repository: PackageRepository | undefined
+): asserts repository is PackageRepository {
+	if (repository == null)
+		throw new Error('Multi-package content build config requires repository')
+
+	if (typeof repository.type !== 'string' || repository.type.length === 0)
+		throw new Error('Multi-package content build config repository.type is required')
+
+	if (typeof repository.url !== 'string' || repository.url.length === 0)
+		throw new Error('Multi-package content build config repository.url is required')
+
+	if (
+		repository.directory != null &&
+		typeof repository.directory !== 'string'
+	)
+		throw new Error('Multi-package content build config repository.directory must be a string')
 }
 
 function topologicalPackageOrder(
@@ -224,7 +251,8 @@ function assetDirs(config: ContentPackageBuildConfig): string[] {
 
 function packageJsonFor(
 	config: ContentPackageBuildConfig,
-	dependencies: readonly ContentPackageDependencyConfig[]
+	dependencies: readonly ContentPackageDependencyConfig[],
+	repository: PackageRepository
 ): PackageJson {
 	const packageDependencies = Object.fromEntries(
 		[
@@ -253,6 +281,7 @@ function packageJsonFor(
 		},
 		files: ['index.js', 'index.d.ts', 'json'],
 		dependencies: packageDependencies,
+		repository: { ...repository },
 		license: config.license,
 		private: config.private
 	}
@@ -288,10 +317,11 @@ async function writePublishableArtifacts(
 	config: ContentPackageBuildConfig,
 	result: RulesPackageBuildResult,
 	builtPackages: BuiltPackageMap,
-	packageOutDir: string
+	packageOutDir: string,
+	repository: PackageRepository
 ): Promise<ContentPackageBuildResult> {
 	const dependencies = dependencyMetadata(config, builtPackages)
-	const packageJson = packageJsonFor(config, dependencies)
+	const packageJson = packageJsonFor(config, dependencies, repository)
 	const packageDir = path.join(packageOutDir, config.id)
 	const jsonDir = path.join(packageDir, 'json')
 
@@ -316,6 +346,7 @@ async function writePublishableArtifacts(
 export async function buildContentPackages(
 	config: MultiPackageBuildConfig
 ): Promise<MultiPackageBuildResult> {
+	assertPackageRepository(config.repository)
 	const outDir = config.outDir ?? 'datasworn'
 	const packageOutDir = config.packageOutDir ?? 'dist/packages'
 	const ordered = topologicalPackageOrder(config.packages)
@@ -334,7 +365,8 @@ export async function buildContentPackages(
 			packageConfig,
 			result,
 			builtPackages,
-			packageOutDir
+			packageOutDir,
+			config.repository
 		)
 		builtPackages.set(packageConfig.id, publishable)
 		results.push(publishable)

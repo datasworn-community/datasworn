@@ -10,7 +10,8 @@ export {
 	type ContentPackageBuildResult,
 	type ContentPackageDependencyConfig,
 	type MultiPackageBuildConfig,
-	type MultiPackageBuildResult
+	type MultiPackageBuildResult,
+	type PackageRepository
 } from './content-package-builder.js'
 export {
 	loadCoreSchema,
