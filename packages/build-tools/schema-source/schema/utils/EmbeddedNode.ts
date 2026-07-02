@@ -10,7 +10,7 @@ import {
 	Type
 } from '@sinclair/typebox'
 import type { Writable } from 'type-fest'
-import TypeId from '../../pkg-core/IdElements/TypeId.js'
+import { IdElements } from '@datasworn-community/core'
 import {
 	EnhancesKey,
 	IdKey,
@@ -19,6 +19,8 @@ import {
 	type TypeSep
 } from '../../scripts/const.js'
 import { Computed } from './Computed.js'
+
+import TypeId = IdElements.TypeId
 import { pascalCase } from './string.js'
 
 const EmbeddedDictionaryKeys = Object.values(TypeId.BranchKey)

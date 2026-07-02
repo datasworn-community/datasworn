@@ -26,6 +26,14 @@ Ticket 1.2 imports the generated upstream JSON schemas and current migration map
 into `@datasworn-community/core`, then adapts the build/migration tool surface
 for the split package layout in `@datasworn-community/build-tools`.
 
+Ticket 1.4 imports the upstream schema/type codegen pipeline (JSON schema
+generation, TypeScript declaration generation, and the JSON TypeDef builder it
+depends on) into `packages/build-tools/schema-source/scripts/` and
+`packages/build-tools/schema-source/builders/`, adapting `pkg-core`-relative
+imports to go through `@datasworn-community/core`'s public API (`IdElements`,
+`Utils`, `TypeNode` namespaces, newly exported from core's index for this
+purpose) since build-tools and core are now separate workspace packages.
+
 The following upstream areas are planned sources for later Phase 1 tickets and
 must be recorded here when copied or adapted:
 
@@ -50,6 +58,16 @@ must be recorded here when copied or adapted:
 | `src/scripts/` | `packages/build-tools/src/` and `scripts/` | 1.2 | Adapted |
 | `src/pkg-core/Builders/` | `packages/build-tools/src/rules-package-builder.ts` | 1.2 | Adapted |
 | `src/pkg-core/Validators/` | `packages/build-tools/src/validators.ts` | 1.2 | Adapted |
+| `src/scripts/schema/buildSchema.ts` | `packages/build-tools/schema-source/scripts/schema/buildSchema.ts` | 1.4 | Adapted |
+| `src/scripts/codegen/` | `packages/build-tools/schema-source/scripts/codegen/` | 1.4 | Adapted |
+| `src/scripts/datasworn/sort.ts` | `packages/build-tools/schema-source/scripts/datasworn/sort.ts` | 1.4 | Adapted |
+| `src/scripts/augmentations.ts` | `packages/build-tools/schema-source/scripts/augmentations.ts` | 1.4 | Adapted |
+| `src/scripts/utils/readWrite.ts` | `packages/build-tools/schema-source/scripts/utils/readWrite.ts` | 1.4 | Adapted |
+| `src/scripts/utils/Log.ts` | `packages/build-tools/schema-source/scripts/utils/Log.ts` | 1.4 | Reimplemented (console shim, no winston/logform) |
+| `src/scripts/validation/{ajv,formats,keywords}.ts` | `packages/build-tools/schema-source/scripts/validation/` | 1.4 | Adapted |
+| `src/scripts/json-typedef/typedef.ts` | `packages/build-tools/schema-source/scripts/json-typedef/typedef.ts` | 1.4 | Yes |
+| `src/scripts/json-typedef/utils.ts` | `packages/build-tools/schema-source/scripts/json-typedef/utils.ts` | 1.4 | Yes |
+| `src/builders/IdBuilder.ts` | `packages/build-tools/schema-source/builders/IdBuilder.ts` | 1.4 | Adapted |
 
 Official content source data and community content are intentionally not part of
 this repository. They move in later restructure phases.

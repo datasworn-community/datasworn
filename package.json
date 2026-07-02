@@ -16,10 +16,14 @@
   "scripts": {
     "build": "tsc -b tsconfig.build.json && bun ./scripts/writePackageMarkers.ts",
     "check": "tsc --noEmit",
+    "check:schema-generation": "bun ./scripts/checkSchemaGeneration.ts",
     "check:schema-version": "bun ./scripts/checkSchemaVersion.ts",
+    "generate": "bun run generate:schema && bun run generate:types",
+    "generate:schema": "bun ./packages/build-tools/schema-source/scripts/schema/buildSchema.ts",
+    "generate:types": "bun ./packages/build-tools/schema-source/scripts/codegen/writeTypescriptTypes.ts",
     "lint": "eslint . --quiet",
     "test": "bun test",
-    "validate": "bun run check && bun run lint && bun run check:schema-version && bun test"
+    "validate": "bun run check && bun run lint && bun run check:schema-version && bun run check:schema-generation && bun test"
   },
   "repository": {
     "type": "git",

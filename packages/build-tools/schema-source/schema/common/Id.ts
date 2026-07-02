@@ -7,10 +7,12 @@ import {
 	Type
 } from '@sinclair/typebox'
 
+import { IdElements } from '@datasworn-community/core'
 import ids from '../../builders/IdBuilder.js'
-import Pattern from '../../pkg-core/IdElements/Pattern.js'
 import JtdType from '../../scripts/json-typedef/typedef.js'
 import { JsonTypeDef } from '../Symbols.js'
+
+import Pattern = IdElements.Pattern
 
 export const RulesetId = Type.String({
 	$id: 'RulesetId',

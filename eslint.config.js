@@ -4,9 +4,11 @@ import tseslint from 'typescript-eslint'
 export default tseslint.config(
   {
     ignores: [
+      '.generated/**',
       'dist/**',
       'node_modules/**',
       'packages/build-tools/schema-source/**',
+      'packages/core/migration/**/*.d.ts',
       'packages/*/dist/**',
       '**/*.tsbuildinfo'
     ]

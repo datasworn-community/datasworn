@@ -5,7 +5,9 @@ import {
 	type TString,
 	Type
 } from '@sinclair/typebox'
-import type TypeId from '../../pkg-core/IdElements/TypeId.js'
+import { IdElements } from '@datasworn-community/core'
+
+import type TypeId = IdElements.TypeId
 import { Computed } from '../Utils.js'
 import { pascalCase } from '../utils/string.js'
 

@@ -8,6 +8,11 @@ import { DATASWORN_SCHEMA_VERSION } from '@datasworn-community/core'
 const execFileAsync = promisify(execFile)
 
 const schemaReleaseLabels = ['release:minor-schema', 'release:major-schema']
+const schemaSensitiveReleaseLabels = [
+	...schemaReleaseLabels,
+	'release:patch',
+	'release:none'
+]
 const releaseLabels = [...schemaReleaseLabels, 'release:none', 'release:patch']
 const schemaSensitivePatterns = [
 	/^packages\/build-tools\/schema-source\//,
@@ -82,7 +87,11 @@ async function changedFiles(): Promise<string[]> {
 }
 
 function hasSchemaImpact(files: readonly string[]): boolean {
-	return files.some((file) =>
+	return schemaSensitiveFiles(files).length > 0
+}
+
+function schemaSensitiveFiles(files: readonly string[]): string[] {
+	return files.filter((file) =>
 		schemaSensitivePatterns.some((pattern) => pattern.test(file))
 	)
 }
@@ -128,18 +137,51 @@ function assertSingleSchemaReleaseLabel(labels: readonly string[]): string {
 	assertReleaseLabelsUnambiguous(labels)
 
 	const schemaLabels = labels.filter((label) =>
-		[...schemaReleaseLabels, 'release:none'].includes(label)
+		schemaSensitiveReleaseLabels.includes(label)
 	)
 
 	assert(
 		schemaLabels.length === 1,
-		`Schema-sensitive changes require exactly one of ${[
-			...schemaReleaseLabels,
-			'release:none'
-		].join(', ')}; found ${schemaLabels.length === 0 ? 'none' : schemaLabels.join(', ')}`
+		`Schema-sensitive changes require exactly one of ${schemaSensitiveReleaseLabels.join(', ')}; found ${schemaLabels.length === 0 ? 'none' : schemaLabels.join(', ')}`
 	)
 
 	return schemaLabels[0]!
+}
+
+function formatLabelList(labels: readonly string[]): string {
+	return labels.length > 0 ? labels.map((label) => `\`${label}\``).join(', ') : 'none'
+}
+
+function formatFileList(files: readonly string[]): string {
+	const displayed = files.slice(0, 25).map((file) => `- \`${file}\``)
+	if (files.length > displayed.length)
+		displayed.push(`- ...and ${files.length - displayed.length} more`)
+
+	return displayed.join('\n')
+}
+
+function schemaReleasePolicyComment(
+	message: string,
+	labels: readonly string[],
+	files: readonly string[]
+): string {
+	return `### Release policy needs a label
+
+${message}
+
+This PR touches schema-sensitive paths, so CI needs exactly one release intent label:
+
+- \`release:minor-schema\` for additive schema changes
+- \`release:major-schema\` for breaking schema changes
+- \`release:patch\` for tooling, codegen, refactors, or generated-history changes that should publish without changing the schema line
+- \`release:none\` for schema-sensitive-only changes that should not publish
+
+Current release labels: ${formatLabelList(labels)}
+
+Schema-sensitive files:
+${formatFileList(files)}
+
+If this should ship a new core/build-tools package without changing the active schema line, use \`release:patch\`.`
 }
 
 function assertReleaseLabelsUnambiguous(labels: readonly string[]): void {
@@ -151,13 +193,24 @@ function assertReleaseLabelsUnambiguous(labels: readonly string[]): void {
 
 async function checkPullRequest(): Promise<void> {
 	const files = await changedFiles()
-	if (!hasSchemaImpact(files)) {
+	const sensitiveFiles = schemaSensitiveFiles(files)
+	if (sensitiveFiles.length === 0) {
 		console.log('No schema-sensitive changes detected; no schema release label required.')
 		return
 	}
 
 	const labels = await releaseLabelsFromEnvironment()
-	const label = assertSingleSchemaReleaseLabel(labels)
+	let label: string
+	try {
+		label = assertSingleSchemaReleaseLabel(labels)
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error)
+		outputMultiline(
+			'comment_body',
+			schemaReleasePolicyComment(message, labels, sensitiveFiles)
+		)
+		throw error
+	}
 	console.log(`Schema-sensitive changes detected; release intent label is ${label}.`)
 }
 
@@ -166,6 +219,20 @@ function output(name: string, value: string | boolean): void {
 	if (process.env.GITHUB_OUTPUT)
 		appendFileSync(process.env.GITHUB_OUTPUT, `${line}\n`)
 	else console.log(line)
+}
+
+function outputMultiline(name: string, value: string): void {
+	if (!process.env.GITHUB_OUTPUT) {
+		console.log(`${name}:`)
+		console.log(value)
+		return
+	}
+
+	const delimiter = `EOF_${Date.now()}_${Math.random().toString(36).slice(2)}`
+	appendFileSync(
+		process.env.GITHUB_OUTPUT,
+		`${name}<<${delimiter}\n${value}\n${delimiter}\n`
+	)
 }
 
 function assertSchemaVersionMatchesLabel(
@@ -210,10 +277,20 @@ async function planMainRelease(): Promise<void> {
 
 	if (schemaImpact) {
 		const label = assertSingleSchemaReleaseLabel(labels)
+		const current = parseSemver(currentVersion)
+		const nextPatch = formatSemver({ ...current, patch: current.patch + 1 })
 
 		if (label === 'release:none') {
 			output('release', false)
 			output('reason', 'schema-sensitive change explicitly marked release:none')
+			return
+		}
+
+		if (label === 'release:patch') {
+			output('release', true)
+			output('increment', 'patch')
+			output('version', nextPatch)
+			output('reason', 'schema-sensitive change marked release:patch')
 			return
 		}
 
