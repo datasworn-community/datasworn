@@ -8,6 +8,11 @@ import { DATASWORN_SCHEMA_VERSION } from '@datasworn-community/core'
 const execFileAsync = promisify(execFile)
 
 const schemaReleaseLabels = ['release:minor-schema', 'release:major-schema']
+const schemaSensitiveReleaseLabels = [
+	...schemaReleaseLabels,
+	'release:patch',
+	'release:none'
+]
 const releaseLabels = [...schemaReleaseLabels, 'release:none', 'release:patch']
 const schemaSensitivePatterns = [
 	/^packages\/build-tools\/schema-source\//,
@@ -132,15 +137,12 @@ function assertSingleSchemaReleaseLabel(labels: readonly string[]): string {
 	assertReleaseLabelsUnambiguous(labels)
 
 	const schemaLabels = labels.filter((label) =>
-		[...schemaReleaseLabels, 'release:none'].includes(label)
+		schemaSensitiveReleaseLabels.includes(label)
 	)
 
 	assert(
 		schemaLabels.length === 1,
-		`Schema-sensitive changes require exactly one of ${[
-			...schemaReleaseLabels,
-			'release:none'
-		].join(', ')}; found ${schemaLabels.length === 0 ? 'none' : schemaLabels.join(', ')}`
+		`Schema-sensitive changes require exactly one of ${schemaSensitiveReleaseLabels.join(', ')}; found ${schemaLabels.length === 0 ? 'none' : schemaLabels.join(', ')}`
 	)
 
 	return schemaLabels[0]!
@@ -171,14 +173,15 @@ This PR touches schema-sensitive paths, so CI needs exactly one release intent l
 
 - \`release:minor-schema\` for additive schema changes
 - \`release:major-schema\` for breaking schema changes
-- \`release:none\` for tooling, codegen, refactors, or generated-history changes that do not alter the active schema shape
+- \`release:patch\` for tooling, codegen, refactors, or generated-history changes that should publish without changing the schema line
+- \`release:none\` for schema-sensitive-only changes that should not publish
 
 Current release labels: ${formatLabelList(labels)}
 
 Schema-sensitive files:
 ${formatFileList(files)}
 
-If this is only generation plumbing and the active schema artifacts are unchanged, \`release:none\` is the correct label.`
+If this should ship a new core/build-tools package without changing the active schema line, use \`release:patch\`.`
 }
 
 function assertReleaseLabelsUnambiguous(labels: readonly string[]): void {
@@ -274,10 +277,20 @@ async function planMainRelease(): Promise<void> {
 
 	if (schemaImpact) {
 		const label = assertSingleSchemaReleaseLabel(labels)
+		const current = parseSemver(currentVersion)
+		const nextPatch = formatSemver({ ...current, patch: current.patch + 1 })
 
 		if (label === 'release:none') {
 			output('release', false)
 			output('reason', 'schema-sensitive change explicitly marked release:none')
+			return
+		}
+
+		if (label === 'release:patch') {
+			output('release', true)
+			output('increment', 'patch')
+			output('version', nextPatch)
+			output('reason', 'schema-sensitive change marked release:patch')
 			return
 		}
 
