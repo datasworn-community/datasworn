@@ -82,7 +82,11 @@ async function changedFiles(): Promise<string[]> {
 }
 
 function hasSchemaImpact(files: readonly string[]): boolean {
-	return files.some((file) =>
+	return schemaSensitiveFiles(files).length > 0
+}
+
+function schemaSensitiveFiles(files: readonly string[]): string[] {
+	return files.filter((file) =>
 		schemaSensitivePatterns.some((pattern) => pattern.test(file))
 	)
 }
@@ -142,6 +146,41 @@ function assertSingleSchemaReleaseLabel(labels: readonly string[]): string {
 	return schemaLabels[0]!
 }
 
+function formatLabelList(labels: readonly string[]): string {
+	return labels.length > 0 ? labels.map((label) => `\`${label}\``).join(', ') : 'none'
+}
+
+function formatFileList(files: readonly string[]): string {
+	const displayed = files.slice(0, 25).map((file) => `- \`${file}\``)
+	if (files.length > displayed.length)
+		displayed.push(`- ...and ${files.length - displayed.length} more`)
+
+	return displayed.join('\n')
+}
+
+function schemaReleasePolicyComment(
+	message: string,
+	labels: readonly string[],
+	files: readonly string[]
+): string {
+	return `### Release policy needs a label
+
+${message}
+
+This PR touches schema-sensitive paths, so CI needs exactly one release intent label:
+
+- \`release:minor-schema\` for additive schema changes
+- \`release:major-schema\` for breaking schema changes
+- \`release:none\` for tooling, codegen, refactors, or generated-history changes that do not alter the active schema shape
+
+Current release labels: ${formatLabelList(labels)}
+
+Schema-sensitive files:
+${formatFileList(files)}
+
+If this is only generation plumbing and the active schema artifacts are unchanged, \`release:none\` is the correct label.`
+}
+
 function assertReleaseLabelsUnambiguous(labels: readonly string[]): void {
 	assert(
 		labels.length <= 1,
@@ -151,13 +190,24 @@ function assertReleaseLabelsUnambiguous(labels: readonly string[]): void {
 
 async function checkPullRequest(): Promise<void> {
 	const files = await changedFiles()
-	if (!hasSchemaImpact(files)) {
+	const sensitiveFiles = schemaSensitiveFiles(files)
+	if (sensitiveFiles.length === 0) {
 		console.log('No schema-sensitive changes detected; no schema release label required.')
 		return
 	}
 
 	const labels = await releaseLabelsFromEnvironment()
-	const label = assertSingleSchemaReleaseLabel(labels)
+	let label: string
+	try {
+		label = assertSingleSchemaReleaseLabel(labels)
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error)
+		outputMultiline(
+			'comment_body',
+			schemaReleasePolicyComment(message, labels, sensitiveFiles)
+		)
+		throw error
+	}
 	console.log(`Schema-sensitive changes detected; release intent label is ${label}.`)
 }
 
@@ -166,6 +216,20 @@ function output(name: string, value: string | boolean): void {
 	if (process.env.GITHUB_OUTPUT)
 		appendFileSync(process.env.GITHUB_OUTPUT, `${line}\n`)
 	else console.log(line)
+}
+
+function outputMultiline(name: string, value: string): void {
+	if (!process.env.GITHUB_OUTPUT) {
+		console.log(`${name}:`)
+		console.log(value)
+		return
+	}
+
+	const delimiter = `EOF_${Date.now()}_${Math.random().toString(36).slice(2)}`
+	appendFileSync(
+		process.env.GITHUB_OUTPUT,
+		`${name}<<${delimiter}\n${value}\n${delimiter}\n`
+	)
 }
 
 function assertSchemaVersionMatchesLabel(
