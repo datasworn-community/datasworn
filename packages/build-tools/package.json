@@ -1,6 +1,6 @@
 {
   "name": "@datasworn-community/build-tools",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Build and migration tools for Datasworn source packages.",
   "type": "module",
   "main": "./dist/index.js",
@@ -49,7 +49,7 @@
     "yaml": "^2.9.0"
   },
   "peerDependencies": {
-    "@datasworn-community/core": "0.2.4"
+    "@datasworn-community/core": "0.2.5"
   },
   "devDependencies": {
     "@datasworn-community/core": "workspace:*",
