@@ -1,4 +1,5 @@
 import { Ajv, type ValidateFunction } from 'ajv/dist/ajv.js'
+import type { Options } from 'ajv/dist/core.js'
 import addFormatsModule from 'ajv-formats/dist/index.js'
 
 import { loadCoreSchemas } from './schema.js'
@@ -25,12 +26,14 @@ function formatErrors(validate: ValidateFunction): string {
 
 export function createDataswornValidator<TTarget>(
 	schema: Record<string, unknown>,
-	name: string
+	name: string,
+	options: Options = {}
 ): SchemaValidator<TTarget> {
 	const ajv = new Ajv({
 		allErrors: true,
 		allowUnionTypes: true,
-		strict: false
+		strict: false,
+		...options
 	})
 	const addFormats = addFormatsModule as unknown as (target: Ajv) => void
 	addFormats(ajv)
@@ -54,7 +57,8 @@ export async function createDataswornValidators<TOutput, TSource>(): Promise<
 		output: createDataswornValidator<TOutput>(schemas.datasworn, 'Datasworn'),
 		source: createDataswornValidator<TSource>(
 			schemas.source,
-			'Datasworn source'
+			'Datasworn source',
+			{ useDefaults: 'empty' }
 		)
 	}
 }

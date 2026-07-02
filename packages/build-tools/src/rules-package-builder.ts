@@ -44,6 +44,12 @@ export interface BuildRulesPackageOptions {
 	 * validation tree, so references from this package into them resolve.
 	 */
 	dependencies?: readonly Datasworn.RulesPackage[]
+	/**
+	 * Validate ID references immediately against this package and dependencies.
+	 * Multi-package content builds disable this and validate once against the
+	 * complete in-repo tree, which supports optional cross-package references.
+	 */
+	validateIdRefs?: boolean
 }
 
 export interface RulesPackageBuildResult {
@@ -60,6 +66,10 @@ const sourceExtensions = new Set(['.json', '.yaml', '.yml'])
 
 function isObject(value: unknown): value is JsonObject {
 	return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function cloneJsonValue<TValue>(value: TValue): TValue {
+	return JSON.parse(JSON.stringify(value)) as TValue
 }
 
 function mergeInto(target: JsonObject, source: JsonObject): JsonObject {
@@ -106,9 +116,13 @@ async function readSourceFile(
 ): Promise<DataswornSource.RulesPackage> {
 	const text = await readFile(filePath, 'utf8')
 	const ext = path.extname(filePath)
-	const value = ext === '.json' ? JSON.parse(text) : YAML.parse(text)
+	const value =
+		ext === '.json'
+			? JSON.parse(text)
+			: cloneJsonValue(YAML.parse(text, { maxAliasCount: -1, merge: true }))
 
 	if (!isObject(value)) throw new Error(`${filePath} did not parse to an object`)
+	value.datasworn_version = DATASWORN_SCHEMA_VERSION
 
 	return value as unknown as DataswornSource.RulesPackage
 }
@@ -143,9 +157,13 @@ export async function buildRulesPackage(
 	for (const filePath of files) {
 		const source = await readSourceFile(filePath)
 		validators.source(source)
-		IdParser.assignIdsInRulesPackage(source, index)
 		mergeInto(merged, source as unknown as JsonObject)
 	}
+
+	IdParser.assignIdsInRulesPackage(
+		merged as unknown as DataswornSource.RulesPackage,
+		index
+	)
 
 	const data = merged as unknown as Datasworn.RulesPackage
 	validators.output(data)
@@ -159,9 +177,12 @@ export async function buildRulesPackage(
 	for (const dependency of options.dependencies ?? [])
 		tree[dependency._id] = dependency
 
-	const idRefs = validateIdRefs(data, tree)
+	const shouldValidateIdRefs = options.validateIdRefs ?? true
+	const idRefs = shouldValidateIdRefs
+		? validateIdRefs(data, tree)
+		: { valid: new Set<string>(), invalid: new Set<string>(), unreachable: new Set<string>() }
 	const unresolved = [...idRefs.invalid, ...idRefs.unreachable]
-	if (unresolved.length > 0)
+	if (shouldValidateIdRefs && unresolved.length > 0)
 		throw new Error(
 			`${normalizedConfig.id}: ${unresolved.length} unresolved ID reference(s):\n  ${unresolved.join('\n  ')}`
 		)

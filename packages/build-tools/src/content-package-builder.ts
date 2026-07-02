@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 
@@ -9,6 +9,7 @@ import {
 	type RulesPackageBuildConfig,
 	type RulesPackageBuildResult
 } from './rules-package-builder.js'
+import { validateIdRefs } from './id-references.js'
 
 const require = createRequire(import.meta.url)
 
@@ -49,6 +50,19 @@ export interface ContentPackageBuildConfig extends RulesPackageBuildConfig {
 	dependencies?: string[]
 	/** Metadata for dependencies that may be published as sibling packages. */
 	publishDependencies?: ContentPackageDependencyConfig[]
+	/**
+	 * Additional packages to load for ID-reference validation without declaring
+	 * them as publish-time package dependencies.
+	 */
+	validationDependencies?: ContentPackageDependencyConfig[]
+	/**
+	 * Asset directories to copy into the generated publishable package, for
+	 * example `source_data/starforged/icons`.
+	 */
+	assets?: string[]
+	paths?: RulesPackageBuildConfig['paths'] & {
+		assets?: string[]
+	}
 }
 
 export interface MultiPackageBuildConfig {
@@ -175,13 +189,26 @@ async function loadInstalledDependency(
 	return JSON.parse(await readFile(jsonPath, 'utf8')) as Datasworn.RulesPackage
 }
 
+async function validationDependencyMetadata(
+	config: ContentPackageBuildConfig,
+	builtPackages: BuiltPackageMap
+): Promise<ContentPackageDependencyConfig[]> {
+	const publish = dependencyMetadata(config, builtPackages)
+	const byId = new Map(publish.map((dependency) => [dependency.id, dependency]))
+
+	for (const dependency of config.validationDependencies ?? [])
+		byId.set(dependency.id, dependency)
+
+	return [...byId.values()]
+}
+
 async function preloadedDependencies(
 	config: ContentPackageBuildConfig,
 	builtPackages: BuiltPackageMap
 ): Promise<Datasworn.RulesPackage[]> {
 	const dependencies: Datasworn.RulesPackage[] = []
 
-	for (const dependency of dependencyMetadata(config, builtPackages)) {
+	for (const dependency of await validationDependencyMetadata(config, builtPackages)) {
 		const built = builtPackages.get(dependency.id)
 		dependencies.push(
 			built?.data ?? (await loadInstalledDependency(dependency))
@@ -189,6 +216,10 @@ async function preloadedDependencies(
 	}
 
 	return dependencies
+}
+
+function assetDirs(config: ContentPackageBuildConfig): string[] {
+	return config.assets ?? config.paths?.assets ?? []
 }
 
 function packageJsonFor(
@@ -231,6 +262,28 @@ function stableJson(value: unknown): string {
 	return `${JSON.stringify(value, undefined, 2)}\n`
 }
 
+async function copyPackageAssets(
+	config: ContentPackageBuildConfig,
+	packageDir: string,
+	packageJson: PackageJson
+): Promise<void> {
+	for (const source of assetDirs(config)) {
+		const targetName = path.basename(source)
+		const target = path.join(packageDir, targetName)
+
+		await cp(source, target, {
+			recursive: true,
+			force: true,
+			filter: (entryPath) => path.basename(entryPath) !== '.DS_Store'
+		})
+
+		if (!packageJson.files.includes(targetName)) packageJson.files.push(targetName)
+		packageJson.exports[`./${targetName}/*`] = `./${targetName}/*`
+	}
+
+	packageJson.files.sort((left, right) => left.localeCompare(right, 'en-US'))
+}
+
 async function writePublishableArtifacts(
 	config: ContentPackageBuildConfig,
 	result: RulesPackageBuildResult,
@@ -243,6 +296,7 @@ async function writePublishableArtifacts(
 	const jsonDir = path.join(packageDir, 'json')
 
 	await mkdir(jsonDir, { recursive: true })
+	await copyPackageAssets(config, packageDir, packageJson)
 	await Promise.all([
 		writeFile(path.join(packageDir, 'package.json'), stableJson(packageJson)),
 		writeFile(
@@ -267,14 +321,15 @@ export async function buildContentPackages(
 	const ordered = topologicalPackageOrder(config.packages)
 	const builtPackages: BuiltPackageMap = new Map()
 	const results: ContentPackageBuildResult[] = []
+	const validationTree: Record<string, Datasworn.RulesPackage> = {}
 
 	for (const packageConfig of ordered) {
 		assertSchemaLine(packageConfig)
-		const dependencies = await preloadedDependencies(packageConfig, builtPackages)
 		const result = await buildRulesPackage(packageConfig, {
 			outDir,
-			dependencies
+			validateIdRefs: false
 		})
+		validationTree[packageConfig.id] = result.data
 		const publishable = await writePublishableArtifacts(
 			packageConfig,
 			result,
@@ -283,6 +338,21 @@ export async function buildContentPackages(
 		)
 		builtPackages.set(packageConfig.id, publishable)
 		results.push(publishable)
+	}
+
+	for (const result of results) {
+		const dependencyTree: Record<string, Datasworn.RulesPackage> = {
+			...validationTree
+		}
+		for (const dependency of await preloadedDependencies(result.config, builtPackages))
+			dependencyTree[dependency._id] = dependency
+
+		const idRefs = validateIdRefs(result.data, dependencyTree)
+		const unresolved = [...idRefs.invalid, ...idRefs.unreachable]
+		if (unresolved.length > 0)
+			throw new Error(
+				`${result.config.id}: ${unresolved.length} unresolved ID reference(s):\n  ${unresolved.join('\n  ')}`
+			)
 	}
 
 	return {

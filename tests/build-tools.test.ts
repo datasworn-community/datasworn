@@ -80,9 +80,137 @@ describe('@datasworn-community/build-tools', () => {
 		expect(output._id).toBe('fixture')
 		expect(output.datasworn_version).toBe(DATASWORN_SCHEMA_VERSION)
 	})
+
+	test('normalizes YAML merges, schema version, and source defaults', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-yaml-'))
+		const sourceDir = path.join(workDir, 'source')
+		const outDir = path.join(workDir, 'out')
+		await mkdir(sourceDir, { recursive: true })
+
+		await writeFile(
+			path.join(sourceDir, 'ruleset.yaml'),
+			`_id: fixture
+type: ruleset
+datasworn_version: "0.1.0"
+<<: &Source
+  title: Fixture
+  authors:
+    - name: Datasworn Community
+  date: 2026-01-01
+  url: https://example.com
+  license: https://opensource.org/licenses/MIT
+rules:
+  stats: {}
+  condition_meters: {}
+  impacts: {}
+  special_tracks: {}
+  tags: {}
+`
+		)
+
+		const result = await buildRulesPackage({
+			id: 'fixture',
+			type: 'ruleset',
+			source: sourceDir,
+			outDir
+		})
+		const output = JSON.parse(await readFile(result.outFile, 'utf8')) as {
+			datasworn_version: string
+			oracles: Record<string, unknown>
+			moves: Record<string, unknown>
+			assets: Record<string, unknown>
+			truths: Record<string, unknown>
+		}
+
+		expect(output.datasworn_version).toBe(DATASWORN_SCHEMA_VERSION)
+		expect(output.oracles).toEqual({})
+		expect(output.moves).toEqual({})
+		expect(output.assets).toEqual({})
+		expect(output.truths).toEqual({})
+	})
+
+	test('materializes YAML aliases before assigning IDs', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-yaml-'))
+		const sourceDir = path.join(workDir, 'source')
+		const outDir = path.join(workDir, 'out')
+		await mkdir(sourceDir, { recursive: true })
+
+		await writeFile(
+			path.join(sourceDir, 'ruleset.yaml'),
+			`_id: fixture
+type: ruleset
+datasworn_version: "0.1.0"
+title: Fixture
+authors:
+  - name: Datasworn Community
+date: 2026-01-01
+url: https://example.com
+license: https://opensource.org/licenses/MIT
+rules:
+  stats: {}
+  condition_meters: {}
+  impacts: {}
+  special_tracks: {}
+  tags: {}
+oracles:
+  fixture:
+    name: Fixture Oracles
+    type: oracle_collection
+    oracle_type: tables
+    _source: &Source
+      authors:
+        - name: Datasworn Community
+      title: Fixture
+      license: https://opensource.org/licenses/MIT
+      url: https://example.com
+      date: 2026-01-01
+    contents:
+      first:
+        name: First
+        type: oracle_rollable
+        oracle_type: table_text
+        _source: *Source
+        rows:
+          - &SharedRow
+            roll: { min: 1, max: 1 }
+            text: Shared
+      second:
+        name: Second
+        type: oracle_rollable
+        oracle_type: table_text
+        _source: *Source
+        rows:
+          - *SharedRow
+`
+		)
+
+		const result = await buildRulesPackage({
+			id: 'fixture',
+			type: 'ruleset',
+			source: sourceDir,
+			outDir
+		})
+		const output = JSON.parse(
+			await readFile(result.outFile, 'utf8')
+		) as Datasworn.RulesPackage
+		const fixtureOracles = output.oracles.fixture
+		if (fixtureOracles.type !== 'oracle_collection')
+			throw new Error('Expected oracle collection')
+		const first = fixtureOracles.contents.first
+		const second = fixtureOracles.contents.second
+		if (first.type !== 'oracle_rollable' || second.type !== 'oracle_rollable')
+			throw new Error('Expected rollable oracles')
+
+		expect(first.rows[0]._id).toBe('oracle_rollable.row:fixture/fixture/first.0')
+		expect(second.rows[0]._id).toBe('oracle_rollable.row:fixture/fixture/second.0')
+	})
 })
 
-async function writeMinimalRuleset(sourceDir: string, id: string) {
+async function writeMinimalRuleset(
+	sourceDir: string,
+	id: string,
+	extra: Record<string, unknown> = {}
+) {
 	await mkdir(sourceDir, { recursive: true })
 	await writeFile(
 		path.join(sourceDir, 'ruleset.json'),
@@ -109,7 +237,8 @@ async function writeMinimalRuleset(sourceDir: string, id: string) {
 				impacts: {},
 				special_tracks: {},
 				tags: {}
-			}
+			},
+			...extra
 		})}\n`
 	)
 }
@@ -119,10 +248,13 @@ describe('buildContentPackages', () => {
 		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-content-'))
 		const baseSource = path.join(workDir, 'source', 'base')
 		const expansionSource = path.join(workDir, 'source', 'expansion')
+		const assetSource = path.join(workDir, 'assets', 'icons')
 		const outDir = path.join(workDir, 'datasworn')
 		const packageOutDir = path.join(workDir, 'packages')
 		await writeMinimalRuleset(baseSource, 'base')
 		await writeMinimalRuleset(expansionSource, 'expansion')
+		await mkdir(assetSource, { recursive: true })
+		await writeFile(path.join(assetSource, 'icon.svg'), '<svg />\n')
 
 		const result = await buildContentPackages({
 			outDir,
@@ -135,7 +267,8 @@ describe('buildContentPackages', () => {
 					packageName: '@datasworn-community/expansion',
 					schemaLine,
 					version: `${schemaLine}.4`,
-					dependencies: ['base']
+					dependencies: ['base'],
+					assets: [assetSource]
 				},
 				{
 					id: 'base',
@@ -158,9 +291,15 @@ describe('buildContentPackages', () => {
 		) as {
 			version: string
 			dependencies: Record<string, string>
+			exports: Record<string, unknown>
+			files: string[]
 		}
 		const expansionIndex = await readFile(
 			path.join(packageOutDir, 'expansion', 'index.js'),
+			'utf8'
+		)
+		const expansionAsset = await readFile(
+			path.join(packageOutDir, 'expansion', 'icons', 'icon.svg'),
 			'utf8'
 		)
 
@@ -169,7 +308,95 @@ describe('buildContentPackages', () => {
 			'@datasworn-community/base': `^${schemaLine}.0`,
 			'@datasworn-community/core': `^${schemaLine}.0`
 		})
+		expect(expansionPackage.files).toContain('icons')
+		expect(expansionPackage.exports).toMatchObject({
+			'./icons/*': './icons/*'
+		})
 		expect(expansionIndex).toContain("./json/expansion.json")
+		expect(expansionAsset).toBe('<svg />\n')
+	})
+
+	test('validates optional in-repo references against the full package tree', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-content-'))
+		const baseSource = path.join(workDir, 'source', 'base')
+		const expansionSource = path.join(workDir, 'source', 'expansion')
+
+		await writeMinimalRuleset(baseSource, 'base', {
+			description: 'Optional reference to [the relic](datasworn:rarity:expansion/relic).'
+		})
+		await writeMinimalRuleset(expansionSource, 'expansion', {
+			assets: {
+				path: {
+					name: 'Path Assets',
+					type: 'asset_collection',
+					_source: {
+						title: 'Fixture',
+						authors: [{ name: 'Datasworn Community' }],
+						date: '2026-01-01',
+						url: 'https://example.com',
+						license: 'https://opensource.org/licenses/MIT'
+					},
+					contents: {
+						relic_bearer: {
+							name: 'Relic Bearer',
+							type: 'asset',
+							category: 'Path',
+							_source: {
+								title: 'Fixture',
+								authors: [{ name: 'Datasworn Community' }],
+								date: '2026-01-01',
+								url: 'https://example.com',
+								license: 'https://opensource.org/licenses/MIT'
+							},
+							abilities: [
+								{
+									text: 'You carry a relic.'
+								}
+							]
+						}
+					}
+				},
+			},
+			rarities: {
+				relic: {
+					name: 'Relic',
+					type: 'rarity',
+					_source: {
+						title: 'Fixture',
+						authors: [{ name: 'Datasworn Community' }],
+						date: '2026-01-01',
+						url: 'https://example.com',
+						license: 'https://opensource.org/licenses/MIT'
+					},
+					asset: 'asset:expansion/path/relic_bearer',
+					description: 'A relic.'
+				}
+			}
+		})
+
+		const result = await buildContentPackages({
+			outDir: path.join(workDir, 'datasworn'),
+			packageOutDir: path.join(workDir, 'packages'),
+			packages: [
+				{
+					id: 'expansion',
+					type: 'ruleset',
+					source: expansionSource,
+					packageName: '@datasworn-community/expansion',
+					schemaLine,
+					dependencies: ['base']
+				},
+				{
+					id: 'base',
+					type: 'ruleset',
+					source: baseSource,
+					packageName: '@datasworn-community/base',
+					schemaLine
+				}
+			]
+		})
+
+		expect(result.buildOrder).toEqual(['base', 'expansion'])
 	})
 })
 
