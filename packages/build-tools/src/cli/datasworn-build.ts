@@ -3,6 +3,10 @@ import { existsSync } from 'node:fs'
 
 import { readBuildConfig } from '../config.js'
 import {
+	buildContentPackages,
+	type MultiPackageBuildConfig
+} from '../content-package-builder.js'
+import {
 	buildRulesPackage,
 	type RulesPackageBuildConfig
 } from '../rules-package-builder.js'
@@ -18,8 +22,14 @@ function usage(): never {
 const args = process.argv.slice(2)
 if (hasArg(args, '--help') || hasArg(args, '-h')) usage()
 
+function isMultiPackageConfig(
+	config: RulesPackageBuildConfig | MultiPackageBuildConfig
+): config is MultiPackageBuildConfig {
+	return 'packages' in config
+}
+
 const configPath = readArg(args, '--config')
-let config: RulesPackageBuildConfig
+let config: RulesPackageBuildConfig | MultiPackageBuildConfig
 
 if (configPath != null) {
 	if (!existsSync(configPath)) throw new Error(`Config file not found: ${configPath}`)
@@ -34,5 +44,14 @@ if (configPath != null) {
 	config = { id, type, source, outDir }
 }
 
-const result = await buildRulesPackage(config)
-console.log(`Built ${config.id} from ${result.files.length} file(s): ${result.outFile}`)
+if (isMultiPackageConfig(config)) {
+	const result = await buildContentPackages(config)
+	console.log(
+		`Built ${result.results.length} package(s) in dependency order: ${result.buildOrder.join(', ')}`
+	)
+} else {
+	const result = await buildRulesPackage(config)
+	console.log(
+		`Built ${config.id} from ${result.files.length} file(s): ${result.outFile}`
+	)
+}
