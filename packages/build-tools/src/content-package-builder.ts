@@ -103,7 +103,6 @@ interface GeneratedJsonManifest {
 interface GeneratedJsonManifestPackage {
 	id: string
 	type: Datasworn.RulesPackage['type']
-	version: string
 	schemaLine: string
 	packageName: string
 	path: string
@@ -323,7 +322,6 @@ function generatedManifest(
 				{
 					id: result.config.id,
 					type: result.config.type,
-					version: packageVersion(result.config),
 					schemaLine: result.config.schemaLine,
 					packageName: result.config.packageName,
 					path: `${result.config.id}.json`,
