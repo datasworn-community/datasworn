@@ -254,6 +254,7 @@ describe('buildContentPackages', () => {
 		const expansionSource = path.join(workDir, 'source', 'expansion')
 		const assetSource = path.join(workDir, 'assets', 'icons')
 		const outDir = path.join(workDir, 'datasworn')
+		const publicJsonOutDir = path.join(workDir, 'generated-datasworn')
 		const packageOutDir = path.join(workDir, 'packages')
 		await writeMinimalRuleset(baseSource, 'base')
 		await writeMinimalRuleset(expansionSource, 'expansion')
@@ -262,6 +263,7 @@ describe('buildContentPackages', () => {
 
 		const result = await buildContentPackages({
 			outDir,
+			publicJsonOutDir,
 			packageOutDir,
 			repository,
 			packages: [
@@ -308,6 +310,28 @@ describe('buildContentPackages', () => {
 			path.join(packageOutDir, 'expansion', 'icons', 'icon.svg'),
 			'utf8'
 		)
+		const generatedExpansion = JSON.parse(
+			await readFile(path.join(publicJsonOutDir, 'expansion.json'), 'utf8')
+		) as Datasworn.RulesPackage
+		const generatedManifest = JSON.parse(
+			await readFile(path.join(publicJsonOutDir, 'manifest.json'), 'utf8')
+		) as {
+			datasworn_version: string
+			packages: Record<
+				string,
+				{
+					version: string
+					schemaLine: string
+					packageName: string
+					path: string
+					dependencies?: string[]
+				}
+			>
+		}
+		const generatedReadme = await readFile(
+			path.join(publicJsonOutDir, 'README.md'),
+			'utf8'
+		)
 
 		expect(expansionPackage.version).toBe(`${schemaLine}.4`)
 		expect(expansionPackage.dependencies).toMatchObject({
@@ -321,6 +345,17 @@ describe('buildContentPackages', () => {
 		expect(expansionPackage.repository).toEqual(repository)
 		expect(expansionIndex).toContain("./json/expansion.json")
 		expect(expansionAsset).toBe('<svg />\n')
+		expect(generatedExpansion._id).toBe('expansion')
+		expect(generatedManifest.datasworn_version).toBe(DATASWORN_SCHEMA_VERSION)
+		expect(Object.keys(generatedManifest.packages)).toEqual(['base', 'expansion'])
+		expect(generatedManifest.packages.expansion).toMatchObject({
+			version: `${schemaLine}.4`,
+			schemaLine,
+			packageName: '@datasworn-community/expansion',
+			path: 'expansion.json',
+			dependencies: ['base']
+		})
+		expect(generatedReadme).toContain('Do not edit these files by hand.')
 	})
 
 	test('requires repository metadata for generated package manifests', async () => {

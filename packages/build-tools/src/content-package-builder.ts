@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 
@@ -74,6 +74,11 @@ export interface ContentPackageBuildConfig extends RulesPackageBuildConfig {
 
 export interface MultiPackageBuildConfig {
 	outDir?: string
+	/**
+	 * Optional checked-in raw JSON output for GitHub users. Files are written
+	 * flat as `<package-id>.json` plus a manifest.
+	 */
+	publicJsonOutDir?: string
 	packageOutDir?: string
 	repository: PackageRepository
 	packages: ContentPackageBuildConfig[]
@@ -88,6 +93,23 @@ export interface ContentPackageBuildResult extends RulesPackageBuildResult {
 export interface MultiPackageBuildResult {
 	results: ContentPackageBuildResult[]
 	buildOrder: string[]
+}
+
+interface GeneratedJsonManifest {
+	datasworn_version: string
+	packages: Record<string, GeneratedJsonManifestPackage>
+}
+
+interface GeneratedJsonManifestPackage {
+	id: string
+	type: Datasworn.RulesPackage['type']
+	version: string
+	schemaLine: string
+	packageName: string
+	path: string
+	description?: string
+	license?: string
+	dependencies?: string[]
 }
 
 type BuiltPackageMap = Map<string, ContentPackageBuildResult>
@@ -291,6 +313,68 @@ function stableJson(value: unknown): string {
 	return `${JSON.stringify(value, undefined, 2)}\n`
 }
 
+function generatedManifest(
+	results: readonly ContentPackageBuildResult[]
+): GeneratedJsonManifest {
+	const packages = Object.fromEntries(
+		results
+			.map((result) => [
+				result.config.id,
+				{
+					id: result.config.id,
+					type: result.config.type,
+					version: packageVersion(result.config),
+					schemaLine: result.config.schemaLine,
+					packageName: result.config.packageName,
+					path: `${result.config.id}.json`,
+					description: result.config.description,
+					license: result.config.license,
+					dependencies: result.config.dependencies
+				}
+			] satisfies [string, GeneratedJsonManifestPackage])
+			.sort(([left], [right]) => left.localeCompare(right, 'en-US'))
+	)
+
+	return {
+		datasworn_version: DATASWORN_SCHEMA_VERSION,
+		packages
+	}
+}
+
+function generatedReadme(): string {
+	return `# Generated Datasworn JSON
+
+This directory contains generated raw Datasworn JSON files for direct use from
+GitHub.
+
+Do not edit these files by hand. Edit source data, rebuild the project, and
+commit the regenerated output.
+
+\`manifest.json\` lists the current generated file and package metadata for each
+content package.
+`
+}
+
+async function writeGeneratedJsonArtifacts(
+	results: readonly ContentPackageBuildResult[],
+	publicJsonOutDir: string
+): Promise<void> {
+	await rm(publicJsonOutDir, { recursive: true, force: true })
+	await mkdir(publicJsonOutDir, { recursive: true })
+
+	await Promise.all([
+		writeFile(path.join(publicJsonOutDir, 'README.md'), generatedReadme()),
+		writeFile(
+			path.join(publicJsonOutDir, 'manifest.json'),
+			stableJson(generatedManifest(results))
+		),
+		...results.map(async (result) => {
+			const json = await readFile(result.outFile, 'utf8')
+			await writeFile(path.join(publicJsonOutDir, `${result.config.id}.json`), json)
+		})
+	])
+}
+
 async function copyPackageAssets(
 	config: ContentPackageBuildConfig,
 	packageDir: string,
@@ -348,6 +432,7 @@ export async function buildContentPackages(
 ): Promise<MultiPackageBuildResult> {
 	assertPackageRepository(config.repository)
 	const outDir = config.outDir ?? 'datasworn'
+	const publicJsonOutDir = config.publicJsonOutDir
 	const packageOutDir = config.packageOutDir ?? 'dist/packages'
 	const ordered = topologicalPackageOrder(config.packages)
 	const builtPackages: BuiltPackageMap = new Map()
@@ -386,6 +471,9 @@ export async function buildContentPackages(
 				`${result.config.id}: ${unresolved.length} unresolved ID reference(s):\n  ${unresolved.join('\n  ')}`
 			)
 	}
+
+	if (publicJsonOutDir != null)
+		await writeGeneratedJsonArtifacts(results, publicJsonOutDir)
 
 	return {
 		results,
