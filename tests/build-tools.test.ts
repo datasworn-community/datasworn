@@ -320,7 +320,6 @@ describe('buildContentPackages', () => {
 			packages: Record<
 				string,
 				{
-					version: string
 					schemaLine: string
 					packageName: string
 					path: string
@@ -349,7 +348,6 @@ describe('buildContentPackages', () => {
 		expect(generatedManifest.datasworn_version).toBe(DATASWORN_SCHEMA_VERSION)
 		expect(Object.keys(generatedManifest.packages)).toEqual(['base', 'expansion'])
 		expect(generatedManifest.packages.expansion).toMatchObject({
-			version: `${schemaLine}.4`,
 			schemaLine,
 			packageName: '@datasworn-community/expansion',
 			path: 'expansion.json',
