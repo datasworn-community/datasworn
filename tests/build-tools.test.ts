@@ -253,13 +253,19 @@ describe('buildContentPackages', () => {
 		const baseSource = path.join(workDir, 'source', 'base')
 		const expansionSource = path.join(workDir, 'source', 'expansion')
 		const assetSource = path.join(workDir, 'assets', 'icons')
+		const migrationSource = path.join(workDir, 'migration', 'expansion')
 		const outDir = path.join(workDir, 'datasworn')
 		const publicJsonOutDir = path.join(workDir, 'generated-datasworn')
 		const packageOutDir = path.join(workDir, 'packages')
 		await writeMinimalRuleset(baseSource, 'base')
 		await writeMinimalRuleset(expansionSource, 'expansion')
 		await mkdir(assetSource, { recursive: true })
+		await mkdir(path.join(migrationSource, '0.1.0'), { recursive: true })
 		await writeFile(path.join(assetSource, 'icon.svg'), '<svg />\n')
+		await writeFile(
+			path.join(migrationSource, '0.1.0', 'id_map.json'),
+			'{"old/id":"new:id"}\n'
+		)
 
 		const result = await buildContentPackages({
 			outDir,
@@ -275,7 +281,8 @@ describe('buildContentPackages', () => {
 					schemaLine,
 					version: `${schemaLine}.4`,
 					dependencies: ['base'],
-					assets: [assetSource]
+					assets: [assetSource],
+					migration: [migrationSource]
 				},
 				{
 					id: 'base',
@@ -310,6 +317,16 @@ describe('buildContentPackages', () => {
 			path.join(packageOutDir, 'expansion', 'icons', 'icon.svg'),
 			'utf8'
 		)
+		const expansionMigrationMap = await readFile(
+			path.join(
+				packageOutDir,
+				'expansion',
+				'migration',
+				'0.1.0',
+				'id_map.json'
+			),
+			'utf8'
+		)
 		const generatedExpansion = JSON.parse(
 			await readFile(path.join(publicJsonOutDir, 'expansion.json'), 'utf8')
 		) as Datasworn.RulesPackage
@@ -338,12 +355,15 @@ describe('buildContentPackages', () => {
 			'@datasworn-community/core': `^${schemaLine}.0`
 		})
 		expect(expansionPackage.files).toContain('icons')
+		expect(expansionPackage.files).toContain('migration')
 		expect(expansionPackage.exports).toMatchObject({
-			'./icons/*': './icons/*'
+			'./icons/*': './icons/*',
+			'./migration/*': './migration/*'
 		})
 		expect(expansionPackage.repository).toEqual(repository)
 		expect(expansionIndex).toContain("./json/expansion.json")
 		expect(expansionAsset).toBe('<svg />\n')
+		expect(expansionMigrationMap).toBe('{"old/id":"new:id"}\n')
 		expect(generatedExpansion._id).toBe('expansion')
 		expect(generatedManifest.datasworn_version).toBe(DATASWORN_SCHEMA_VERSION)
 		expect(Object.keys(generatedManifest.packages)).toEqual(['base', 'expansion'])

@@ -67,8 +67,14 @@ export interface ContentPackageBuildConfig extends RulesPackageBuildConfig {
 	 * example `source_data/starforged/icons`.
 	 */
 	assets?: string[]
+	/**
+	 * Migration artifact directories to copy into the generated publishable
+	 * package, for example `source_data/starforged/migration`.
+	 */
+	migration?: string[]
 	paths?: RulesPackageBuildConfig['paths'] & {
 		assets?: string[]
+		migration?: string[]
 	}
 }
 
@@ -270,6 +276,10 @@ function assetDirs(config: ContentPackageBuildConfig): string[] {
 	return config.assets ?? config.paths?.assets ?? []
 }
 
+function migrationDirs(config: ContentPackageBuildConfig): string[] {
+	return config.migration ?? config.paths?.migration ?? []
+}
+
 function packageJsonFor(
 	config: ContentPackageBuildConfig,
 	dependencies: readonly ContentPackageDependencyConfig[],
@@ -395,6 +405,28 @@ async function copyPackageAssets(
 	packageJson.files.sort((left, right) => left.localeCompare(right, 'en-US'))
 }
 
+async function copyPackageMigrationArtifacts(
+	config: ContentPackageBuildConfig,
+	packageDir: string,
+	packageJson: PackageJson
+): Promise<void> {
+	const sources = migrationDirs(config)
+	if (sources.length === 0) return
+
+	const target = path.join(packageDir, 'migration')
+	for (const source of sources) {
+		await cp(source, target, {
+			recursive: true,
+			force: true,
+			filter: (entryPath) => path.basename(entryPath) !== '.DS_Store'
+		})
+	}
+
+	if (!packageJson.files.includes('migration')) packageJson.files.push('migration')
+	packageJson.exports['./migration/*'] = './migration/*'
+	packageJson.files.sort((left, right) => left.localeCompare(right, 'en-US'))
+}
+
 async function writePublishableArtifacts(
 	config: ContentPackageBuildConfig,
 	result: RulesPackageBuildResult,
@@ -409,6 +441,7 @@ async function writePublishableArtifacts(
 
 	await mkdir(jsonDir, { recursive: true })
 	await copyPackageAssets(config, packageDir, packageJson)
+	await copyPackageMigrationArtifacts(config, packageDir, packageJson)
 	await Promise.all([
 		writeFile(path.join(packageDir, 'package.json'), stableJson(packageJson)),
 		writeFile(
