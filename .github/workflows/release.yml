@@ -5,8 +5,6 @@ on:
     types: [opened, reopened, ready_for_review, labeled, synchronize]
   push:
     branches: [main]
-    tags:
-      - "v*"
 
 jobs:
   instructions:
@@ -222,39 +220,6 @@ jobs:
 
       - name: Publish packages
         if: steps.plan.outputs.release == 'true'
-        uses: ./.github/actions/publish-workspaces
-        with:
-          mode: release
-
-  release:
-    name: Publish packages
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build
-        uses: datasworn-community/.github/.github/actions/bun-build@v1.3.0
-
-      - name: Setup Node for npm publishing
-        uses: actions/setup-node@v6
-        with:
-          node-version: "24"
-          registry-url: https://registry.npmjs.org/
-          package-manager-cache: false
-
-      - name: Setup npm
-        run: |
-          npm install --global npm@latest
-          npm config set registry https://registry.npmjs.org/
-          npm --version
-
-      - name: Publish packages
         uses: ./.github/actions/publish-workspaces
         with:
           mode: release

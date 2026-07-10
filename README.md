@@ -160,13 +160,14 @@ release intent through the PR's `release:*` label.
 3. Open a GitHub release for the tag.
 4. Publish both packages with provenance through npm Trusted Publishing (OIDC).
 
-A manually pushed `v*` tag remains a fallback release path and runs the local tag
-publish job. Automatic, tag-driven, and canary publishes all originate from
+Automatic stable publishes and PR canaries both originate from
 `.github/workflows/release.yml`; register its filename, `release.yml`, as the npm
-trusted-publisher workflow. GitHub's OIDC identity is tied to that local workflow
-even though its build step uses the shared `bun-build` action. Watch the run under
-the repo's **Actions** tab and confirm the new versions appear on npm before
-announcing.
+trusted-publisher workflow. The automatic release still creates and pushes its
+annotated version tag and opens the corresponding GitHub release, but that tag
+push does not start a second publish job. GitHub's OIDC identity is tied to the
+local workflow even though its build step uses the shared `bun-build` action.
+Watch the run under the repo's **Actions** tab and confirm the new versions appear
+on npm before announcing.
 
 ### Experimental (canary) publishes
 
