@@ -1,17 +1,100 @@
 name: Release
 
 on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, labeled, synchronize, closed]
   push:
+    branches: [main]
     tags:
       - "v*"
 
 jobs:
+  experimental-release:
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    uses: datasworn-community/.github/.github/workflows/experimental-release.yml@v1
+    secrets: inherit
+
+  auto-release:
+    name: Plan, tag, and release
+    if: "${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'chore: release v') }}"
+    runs-on: ubuntu-latest
+    concurrency:
+      group: auto-release-main
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .tool-versions
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Validate
+        run: bun run validate
+
+      - name: Plan release
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_BASE_SHA: ${{ github.event.before }}
+          RELEASE_HEAD_SHA: ${{ github.sha }}
+        run: bun ./scripts/releasePlan.ts plan-main
+
+      - name: Configure Git
+        if: steps.plan.outputs.release == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Release
+        if: steps.plan.outputs.release == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bunx release-it "${{ steps.plan.outputs.version }}" --ci
+
+      - name: Setup Node for npm publishing
+        if: steps.plan.outputs.release == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org/
+          package-manager-cache: false
+
+      - name: Setup npm
+        if: steps.plan.outputs.release == 'true'
+        run: |
+          npm install --global npm@latest
+          npm config set registry https://registry.npmjs.org/
+          npm --version
+
+      - name: Publish packages
+        if: steps.plan.outputs.release == 'true'
+        uses: datasworn-community/.github/.github/actions/publish-workspaces@v1
+        with:
+          mode: release
+
   release:
-    # The repo's default workflow token is read-only, and a reusable workflow's
-    # permissions are capped by the caller's. Grant what the reusable release
-    # workflow needs: id-token for npm provenance/OIDC, contents to check out.
+    if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read
       id-token: write
     uses: datasworn-community/.github/.github/workflows/release.yml@v1
-    secrets: inherit

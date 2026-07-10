@@ -128,18 +128,13 @@ moves on its own cadence.
 
 ## Publishing a release
 
-Publishing is **tag-driven**: a `v*` tag triggers the shared release workflow,
-which builds and runs `npm publish --provenance` for each package via npm
-Trusted Publishing (OIDC). You do not run `npm publish` by hand. Cut releases
-from an up-to-date, clean `main`:
+Publishing is automatic after changes land on `main`. The release workflow
+builds and validates the repository, plans the next version from the changed
+files and the merged PR's release label, and then runs `release-it`. Non-schema
+changes default to a patch release; schema-sensitive changes must declare their
+release intent through the PR's `release:*` label.
 
-```sh
-git checkout main && git pull
-bun install && bun run validate   # must be green before releasing
-bunx release-it minor             # or: patch | major | <explicit-version>
-```
-
-`release-it` will:
+`release-it` then:
 
 1. Bump the version and run `scripts/setVersion.ts` (`after:bump` hook) so
    core, build-tools, and the build-tools → core peer pin all move to the new
@@ -147,11 +142,13 @@ bunx release-it minor             # or: patch | major | <explicit-version>
 2. Commit `chore: release v<version>`, create the annotated tag `v<version>`,
    and push both.
 3. Open a GitHub release for the tag.
+4. Publish both packages with provenance through npm Trusted Publishing (OIDC).
 
-Pushing the tag is what publishes: the
-`datasworn-community/.github` release workflow picks it up and publishes both
-packages to npm with provenance. Watch the run under the repo's **Actions** tab
-and confirm the new versions appear on npm before announcing.
+A manually pushed `v*` tag remains a fallback release path and calls the shared
+release workflow. Both automatic and tag-driven publishes originate from the
+local `.github/workflows/release.yml`; register its filename, `release.yml`, with
+npm. Watch the run under the repo's **Actions** tab and confirm the new versions
+appear on npm before announcing.
 
 ### Experimental (canary) publishes
 
@@ -160,5 +157,5 @@ label to it. While the label is present, every push publishes canaries under
 the `pr-<number>` npm dist-tag (e.g. `npm i @datasworn-community/core@pr-42`);
 a sticky PR comment lists the exact install commands. Remove the label to stop.
 Canaries never touch the `latest` tag, and the dist-tag is cleaned up when the
-PR closes. (Canaries run on internal branches only — fork PRs cannot access the
-publish secrets.)
+PR closes. Canaries run on internal branches only so untrusted fork code cannot
+reach the npm trusted-publishing job.
