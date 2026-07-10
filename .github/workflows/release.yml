@@ -2,7 +2,7 @@ name: Release
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, labeled, synchronize, closed]
+    types: [opened, reopened, ready_for_review, labeled, synchronize]
   push:
     branches: [main]
     tags:
@@ -15,8 +15,7 @@ jobs:
       contents: read
       id-token: write
       pull-requests: write
-    uses: datasworn-community/.github/.github/workflows/experimental-release.yml@v1
-    secrets: inherit
+    uses: datasworn-community/.github/.github/workflows/experimental-release.yml@v1.3.0
 
   auto-release:
     name: Plan, tag, and release
@@ -88,7 +87,7 @@ jobs:
 
       - name: Publish packages
         if: steps.plan.outputs.release == 'true'
-        uses: datasworn-community/.github/.github/actions/publish-workspaces@v1
+        uses: datasworn-community/.github/.github/actions/publish-workspaces@v1.3.0
         with:
           mode: release
 
@@ -97,4 +96,4 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    uses: datasworn-community/.github/.github/workflows/release.yml@v1
+    uses: datasworn-community/.github/.github/workflows/release.yml@v1.3.0

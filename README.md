@@ -113,7 +113,7 @@ committed — that's the signal you forgot to run `generate` before committing.
 ## Release Model
 
 Shared CI and publish workflows are called from
-`datasworn-community/.github/.github/workflows/*@v1`.
+`datasworn-community/.github/.github/workflows/*@v1.3.0`.
 
 The root `workspaces` field is the publish contract. Non-private workspace
 packages are published in internal dependency order by the shared release
@@ -155,7 +155,9 @@ appear on npm before announcing.
 To publish a throwaway build from an open PR, add the `release_experimental`
 label to it. While the label is present, every push publishes canaries under
 the `pr-<number>` npm dist-tag (e.g. `npm i @datasworn-community/core@pr-42`);
-a sticky PR comment lists the exact install commands. Remove the label to stop.
-Canaries never touch the `latest` tag, and the dist-tag is cleaned up when the
-PR closes. Canaries run on internal branches only so untrusted fork code cannot
-reach the npm trusted-publishing job.
+a sticky PR comment lists both tagged and exact install commands. Remove the
+label to stop future publishes. Canaries never touch the `latest` tag. The
+per-PR dist-tag remains after the PR closes as a convenience alias and can move
+when a new canary is published; use the exact version for reproducible installs.
+Canaries run on internal branches only so untrusted fork code cannot reach the
+npm trusted-publishing job.

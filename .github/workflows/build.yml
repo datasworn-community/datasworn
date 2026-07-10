@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    uses: datasworn-community/.github/.github/workflows/build.yml@v1
+    uses: datasworn-community/.github/.github/workflows/build.yml@v1.3.0
 
   release-policy:
     name: Release policy
