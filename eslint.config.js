@@ -16,6 +16,16 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.strict,
   {
+    files: ['.github/actions/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        structuredClone: 'readonly'
+      }
+    }
+  },
+  {
     files: ['**/*.ts'],
     languageOptions: {
       parserOptions: {

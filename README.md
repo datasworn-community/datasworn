@@ -40,6 +40,8 @@ packages/
 scripts/                 Repo-internal scripts (not published): version
                          lockstep, package marker generation, CI guards
 tests/                   Cross-package smoke tests (bun test)
+.github/actions/
+  publish-workspaces/    Repo-local npm workspace publisher and unit tests
 ```
 
 ### Getting started
@@ -63,10 +65,11 @@ workspace symlink to core's **built** `dist/`, not its `src/`.
 | `bun run check` | `tsc --noEmit` across `packages/*/src`, `scripts/`, and `tests/` |
 | `bun run lint` | ESLint (schema-source is intentionally excluded — see below) |
 | `bun run test` | `bun test` — unit/integration tests in `tests/` |
+| `bun run test:publishing` | Unit tests for workspace dependency rewriting and publish guards |
 | `bun run generate` | Regenerates core's JSON schemas + `Datasworn.ts`/`DataswornSource.ts` from `schema-source` (see next section) |
 | `bun run check:schema-version` | Asserts the schema version is consistent across core, build-tools' peer pin, and the migration history folder |
 | `bun run check:schema-generation` | Regenerates and asserts the result matches what's committed (catches "edited schema-source, forgot to run `generate`") |
-| `bun run validate` | Everything CI runs: `check` + `lint` + both schema guards + `test` |
+| `bun run validate` | Everything CI runs: `check` + `lint` + both schema guards + application and publishing tests |
 
 ### Making a change
 
@@ -112,12 +115,25 @@ committed — that's the signal you forgot to run `generate` before committing.
 
 ## Release Model
 
-Shared CI and publish workflows are called from
-`datasworn-community/.github/.github/workflows/*@v1.3.0`.
+The build and release workflows live in this repository. They reuse only the
+shared `bun-build@v1.3.0` action for Bun setup, dependency installation, builds,
+and validation. Workspace discovery, manifest rewriting, and npm publishing are
+implemented by the local `.github/actions/publish-workspaces` action.
 
 The root `workspaces` field is the publish contract. Non-private workspace
-packages are published in internal dependency order by the shared release
-workflow.
+packages with a name and version are publishable; private workspaces and helper
+manifests outside those patterns are ignored. Each publish sorts the selected
+packages by their internal dependencies so dependencies are available before
+their dependents.
+
+Before a stable publish, internal `workspace:` dependencies are rewritten to the
+selected package's locked version while preserving the declared modifier:
+`workspace:*` and `workspace:` become an exact version, `workspace:^` and
+`workspace:~` become the corresponding range, and explicit ranges are preserved.
+Before a canary publish, all internal dependency fields are rewritten to that
+PR's exact canary versions. Publishing fails before uploading any package if a
+consumer-facing dependency still contains an unresolved `workspace:` spec, such
+as a dependency on a private workspace.
 
 `@datasworn-community/core` and `@datasworn-community/build-tools` are
 **versioned together** (a single locked version, e.g. `0.2.0`). build-tools
@@ -144,20 +160,24 @@ release intent through the PR's `release:*` label.
 3. Open a GitHub release for the tag.
 4. Publish both packages with provenance through npm Trusted Publishing (OIDC).
 
-A manually pushed `v*` tag remains a fallback release path and calls the shared
-release workflow. Both automatic and tag-driven publishes originate from the
-local `.github/workflows/release.yml`; register its filename, `release.yml`, with
-npm. Watch the run under the repo's **Actions** tab and confirm the new versions
-appear on npm before announcing.
+A manually pushed `v*` tag remains a fallback release path and runs the local tag
+publish job. Automatic, tag-driven, and canary publishes all originate from
+`.github/workflows/release.yml`; register its filename, `release.yml`, as the npm
+trusted-publisher workflow. GitHub's OIDC identity is tied to that local workflow
+even though its build step uses the shared `bun-build` action. Watch the run under
+the repo's **Actions** tab and confirm the new versions appear on npm before
+announcing.
 
 ### Experimental (canary) publishes
 
 To publish a throwaway build from an open PR, add the `release_experimental`
 label to it. While the label is present, every push publishes canaries under
 the `pr-<number>` npm dist-tag (e.g. `npm i @datasworn-community/core@pr-42`);
-a sticky PR comment lists both tagged and exact install commands. Remove the
-label to stop future publishes. Canaries never touch the `latest` tag. The
-per-PR dist-tag remains after the PR closes as a convenience alias and can move
-when a new canary is published; use the exact version for reproducible installs.
-Canaries run on internal branches only so untrusted fork code cannot reach the
-npm trusted-publishing job.
+a sticky PR comment lists both tagged and exact install commands. Exact versions
+use `<base>-experimental.<pr-number>.<12-character-head-sha>`, and internal
+workspace dependencies point to those exact versions. Remove the label to stop
+future publishes. Canaries never touch the `latest` tag. The per-PR dist-tag
+remains after the PR closes as a convenience alias and can move when a new canary
+is published; use the exact version for reproducible installs. Canaries run on
+internal branches only so untrusted fork code cannot reach the npm
+trusted-publishing job.
