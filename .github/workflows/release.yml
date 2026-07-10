@@ -1,17 +1,225 @@
 name: Release
 
 on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, labeled, synchronize]
   push:
-    tags:
-      - "v*"
+    branches: [main]
 
 jobs:
-  release:
-    # The repo's default workflow token is read-only, and a reusable workflow's
-    # permissions are capped by the caller's. Grant what the reusable release
-    # workflow needs: id-token for npm provenance/OIDC, contents to check out.
+  instructions:
+    name: Post canary instructions
+    if: >
+      github.event_name == 'pull_request' &&
+      (github.event.action == 'opened' ||
+      github.event.action == 'reopened' ||
+      github.event.action == 'ready_for_review')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Update PR comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          marker='<!-- datasworn-community experimental release -->'
+          body="$(cat <<EOF
+          ${marker}
+          Need an experimental publish for this PR? Add the \`release_experimental\` label.
+
+          While the label is present, every push publishes fresh canaries with the \`pr-${{ github.event.pull_request.number }}\` npm dist-tag. Remove the label to stop future publishes. The dist-tag remains after the PR closes; use an exact canary version for reproducible installs.
+          EOF
+          )"
+
+          comment_id="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments" \
+            --jq ".[] | select(.body | startswith(\"${marker}\")) | .id" | head -n 1)"
+
+          if [[ -n "${comment_id}" ]]; then
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -f body="${body}"
+          else
+            gh api "repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments" -f body="${body}"
+          fi
+
+  canary:
+    name: Publish canary packages
+    if: >
+      github.event_name == 'pull_request' &&
+      ((github.event.action == 'labeled' && github.event.label.name == 'release_experimental') ||
+      (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'release_experimental')))
+    runs-on: ubuntu-latest
+    concurrency:
+      group: canary-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     permissions:
       contents: read
       id-token: write
-    uses: datasworn-community/.github/.github/workflows/release.yml@v1
-    secrets: inherit
+      pull-requests: write
+
+    steps:
+      - name: Note fork limitation
+        if: github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          marker='<!-- datasworn-community experimental release -->'
+          body="$(cat <<EOF
+          ${marker}
+          Canaries run on internal branches only so untrusted fork code cannot reach the npm trusted-publishing job.
+          EOF
+          )"
+
+          comment_id="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments" \
+            --jq ".[] | select(.body | startswith(\"${marker}\")) | .id" | head -n 1)"
+
+          if [[ -n "${comment_id}" ]]; then
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -f body="${body}"
+          else
+            gh api "repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments" -f body="${body}"
+          fi
+
+      - name: Checkout
+        if: github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Build
+        if: github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
+        uses: datasworn-community/.github/.github/actions/bun-build@v1.3.0
+
+      - name: Setup Node for npm publishing
+        if: github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org/
+          package-manager-cache: false
+
+      - name: Setup npm
+        if: github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
+        run: |
+          npm install --global npm@latest
+          npm config set registry https://registry.npmjs.org/
+          npm --version
+
+      - name: Publish canary packages
+        if: github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
+        id: publish
+        uses: ./.github/actions/publish-workspaces
+        with:
+          mode: canary
+          pr-number: ${{ github.event.pull_request.number }}
+          head-sha: ${{ github.event.pull_request.head.sha }}
+
+      - name: Update PR comment
+        if: github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INSTALL_LINES: ${{ steps.publish.outputs.install_lines }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          marker='<!-- datasworn-community experimental release -->'
+          body="$(cat <<EOF
+          ${marker}
+          Published experimental packages for ${{ github.event.pull_request.head.sha }}.
+
+          \`\`\`sh
+          ${INSTALL_LINES}
+          \`\`\`
+
+          The \`pr-${{ github.event.pull_request.number }}\` alias remains after this PR closes. Use a versioned install command above for reproducibility.
+          EOF
+          )"
+
+          comment_id="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments" \
+            --jq ".[] | select(.body | startswith(\"${marker}\")) | .id" | head -n 1)"
+
+          if [[ -n "${comment_id}" ]]; then
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -f body="${body}"
+          else
+            gh api "repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments" -f body="${body}"
+          fi
+
+  auto-release:
+    name: Plan, tag, and release
+    if: "${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'chore: release v') }}"
+    runs-on: ubuntu-latest
+    concurrency:
+      group: auto-release-main
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .tool-versions
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Validate
+        run: bun run validate
+
+      - name: Plan release
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_BASE_SHA: ${{ github.event.before }}
+          RELEASE_HEAD_SHA: ${{ github.sha }}
+        run: bun ./scripts/releasePlan.ts plan-main
+
+      - name: Configure Git
+        if: steps.plan.outputs.release == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Release
+        if: steps.plan.outputs.release == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bunx release-it "${{ steps.plan.outputs.version }}" --ci
+
+      - name: Setup Node for npm publishing
+        if: steps.plan.outputs.release == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org/
+          package-manager-cache: false
+
+      - name: Setup npm
+        if: steps.plan.outputs.release == 'true'
+        run: |
+          npm install --global npm@latest
+          npm config set registry https://registry.npmjs.org/
+          npm --version
+
+      - name: Publish packages
+        if: steps.plan.outputs.release == 'true'
+        uses: ./.github/actions/publish-workspaces
+        with:
+          mode: release

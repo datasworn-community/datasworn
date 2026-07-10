@@ -7,7 +7,19 @@ on:
 
 jobs:
   build:
-    uses: datasworn-community/.github/.github/workflows/build.yml@v1
+    name: Build and validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        uses: datasworn-community/.github/.github/actions/bun-build@v1.3.0
+        with:
+          validate: "true"
 
   release-policy:
     name: Release policy
