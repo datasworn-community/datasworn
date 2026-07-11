@@ -5299,6 +5299,11 @@ export type WebUrl = string
  * A named world and its associated set of setting truths.
  */
 export interface World {
+	/**
+	 * The player-facing name of this world.
+	 * @example "The Ironlands"
+	 * @example "The Forge"
+	 */
 	name: Label;
 	truths: TruthId[];
 }

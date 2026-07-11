@@ -11444,6 +11444,11 @@
 			"type": "object",
 			"properties": {
 				"name": {
+					"description": "The player-facing name of this world.",
+					"examples": [
+						"The Ironlands",
+						"The Forge"
+					],
 					"$ref": "#/definitions/Label"
 				},
 				"truths": {

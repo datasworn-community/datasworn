@@ -8,7 +8,10 @@ import { EmbeddedOracleRollable } from './oracles/EmbeddedOracleRollable.js'
 
 export const World = Type.Object(
 	{
-		name: Type.Ref(Text.Label),
+		name: Type.Ref(Text.Label, {
+			description: 'The player-facing name of this world.',
+			examples: ['The Ironlands', 'The Forge']
+		}),
 		truths: Type.Array(Type.Ref('TruthId'), {
 			minItems: 1,
 			uniqueItems: true
