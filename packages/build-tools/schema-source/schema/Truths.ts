@@ -6,6 +6,22 @@ import { EntityPrompt } from './entities/EntityPrompt.js'
 import * as Generic from './Generic.js'
 import { EmbeddedOracleRollable } from './oracles/EmbeddedOracleRollable.js'
 
+export const World = Type.Object(
+	{
+		name: Type.Ref(Text.Label),
+		truths: Type.Array(Type.Ref('TruthId'), {
+			minItems: 1,
+			uniqueItems: true
+		})
+	},
+	{
+		$id: 'World',
+		description: 'A named world and its associated set of setting truths.'
+	}
+)
+
+export type World = Static<typeof World>
+
 export type TruthOption = Static<typeof TruthOption>
 
 export const TruthOption = Generic.IdNode(

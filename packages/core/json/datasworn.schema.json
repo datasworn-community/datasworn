@@ -2,7 +2,7 @@
 	"$schema": "http://json-schema.org/draft-07/schema#",
 	"$id": "https://ironswornrpg.com/datasworn.schema.json",
 	"$ref": "#/definitions/RulesPackage",
-	"title": "Datasworn v0.2.0",
+	"title": "Datasworn v0.3.0",
 	"description": "Describes game rules compatible with the Ironsworn tabletop role-playing game by Shawn Tomkin.",
 	"definitions": {
 		"ActionRollMethod": {
@@ -5328,7 +5328,7 @@
 				"datasworn_version": {
 					"description": "The version of the Datasworn format used by this data.",
 					"pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
-					"const": "0.2.0",
+					"const": "0.3.0",
 					"type": "string"
 				},
 				"description": {
@@ -5446,6 +5446,17 @@
 					"patternProperties": {
 						"^[a-z][a-z0-9_]*$": {
 							"$ref": "#/definitions/Truth"
+						}
+					}
+				},
+				"worlds": {
+					"default": {},
+					"remarks": "Deserialize as a dictionary object.",
+					"description": "A dictionary object of named worlds and their associated setting truths.",
+					"type": "object",
+					"patternProperties": {
+						"^[a-z][a-z0-9_]*$": {
+							"$ref": "#/definitions/World"
 						}
 					}
 				},
@@ -9142,7 +9153,7 @@
 				"datasworn_version": {
 					"description": "The version of the Datasworn format used by this data.",
 					"pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
-					"const": "0.2.0",
+					"const": "0.3.0",
 					"type": "string"
 				},
 				"description": {
@@ -9260,6 +9271,17 @@
 					"patternProperties": {
 						"^[a-z][a-z0-9_]*$": {
 							"$ref": "#/definitions/Truth"
+						}
+					}
+				},
+				"worlds": {
+					"default": {},
+					"remarks": "Deserialize as a dictionary object.",
+					"description": "A dictionary object of named worlds and their associated setting truths.",
+					"type": "object",
+					"patternProperties": {
+						"^[a-z][a-z0-9_]*$": {
+							"$ref": "#/definitions/World"
 						}
 					}
 				},
@@ -11349,6 +11371,28 @@
 			"format": "uri",
 			"description": "An absolute URL pointing to a website.",
 			"type": "string"
+		},
+		"World": {
+			"title": "World",
+			"description": "A named world and its associated set of setting truths.",
+			"type": "object",
+			"properties": {
+				"name": {
+					"$ref": "#/definitions/Label"
+				},
+				"truths": {
+					"minItems": 1,
+					"uniqueItems": true,
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/TruthId"
+					}
+				}
+			},
+			"required": [
+				"name",
+				"truths"
+			]
 		}
 	}
 }

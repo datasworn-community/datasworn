@@ -59,6 +59,12 @@ const RulesPackageBase = Type.Object({
 			description: 'A dictionary object of truth categories.'
 		})
 	),
+	worlds: Type.Optional(
+		Generic.Dictionary(Type.Ref('World'), {
+			description:
+				'A dictionary object of named worlds and their associated setting truths.'
+		})
+	),
 	rarities: Type.Optional(
 		Generic.Dictionary(Type.Ref('Rarity'), {
 			description:

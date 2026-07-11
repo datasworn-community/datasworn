@@ -287,6 +287,162 @@ describe('@datasworn-community/build-tools', () => {
 		expect(output.datasworn_version).toBe(DATASWORN_SCHEMA_VERSION)
 	})
 
+	test('builds multiple named worlds without changing truth IDs', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-worlds-'))
+		const sourceDir = path.join(workDir, 'source')
+		const outDir = path.join(workDir, 'out')
+		await writeMinimalRuleset(sourceDir, 'fixture', {
+			truths: {
+			origin: {
+				name: 'Origin',
+				type: 'truth',
+				dice: '1d100',
+				_source: {
+					title: 'Fixture',
+					authors: [{ name: 'Datasworn Community' }],
+					date: '2026-01-01',
+					url: 'https://example.com',
+					license: 'https://opensource.org/licenses/MIT'
+				},
+				options: []
+			},
+			legacy: {
+				name: 'Legacy',
+				type: 'truth',
+				dice: '1d100',
+				_source: {
+					title: 'Fixture',
+					authors: [{ name: 'Datasworn Community' }],
+					date: '2026-01-01',
+					url: 'https://example.com',
+					license: 'https://opensource.org/licenses/MIT'
+				},
+				options: []
+			}
+		},
+		worlds: {
+			first: {
+				name: 'The First World',
+				truths: ['truth:fixture/origin', 'truth:fixture/legacy']
+			},
+			second: {
+				name: 'The Second World',
+				truths: ['truth:fixture/legacy']
+			}
+		}
+	})
+
+		const result = await buildRulesPackage({
+			id: 'fixture',
+			type: 'ruleset',
+			source: sourceDir,
+			outDir
+		})
+		const data = result.data
+		if (data.worlds == null) throw new Error('Expected worlds')
+
+		expect(data.worlds.first.name).toBe('The First World')
+		expect(data.worlds.first.truths).toEqual([
+			'truth:fixture/origin',
+			'truth:fixture/legacy'
+		])
+		expect(data.worlds.second.truths).toEqual(['truth:fixture/legacy'])
+		expect('_id' in data.worlds.first).toBe(false)
+		if (data.truths == null) throw new Error('Expected truths')
+		expect(data.truths.origin._id).toBe('truth:fixture/origin')
+		expect(data.truths.legacy._id).toBe('truth:fixture/legacy')
+
+		const emitted = JSON.parse(
+			await readFile(result.outFile, 'utf8')
+		) as Datasworn.RulesPackage
+		if (emitted.worlds == null) throw new Error('Expected emitted worlds')
+		expect(emitted.worlds.first).toEqual({
+			name: 'The First World',
+			truths: ['truth:fixture/origin', 'truth:fixture/legacy']
+		})
+	})
+
+	test('rejects duplicate truths within a world', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-worlds-'))
+		const sourceDir = path.join(workDir, 'source')
+		await writeMinimalRuleset(sourceDir, 'fixture', {
+			worlds: {
+				forge: {
+					name: 'The Forge',
+					truths: ['truth:fixture/origin', 'truth:fixture/origin']
+				}
+			}
+		})
+
+		expect(
+			buildRulesPackage({ id: 'fixture', type: 'ruleset', source: sourceDir })
+		).rejects.toThrow('must NOT have duplicate items')
+	})
+
+	test('rejects an empty world truth set', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-worlds-'))
+		const sourceDir = path.join(workDir, 'source')
+		await writeMinimalRuleset(sourceDir, 'fixture', {
+			worlds: { forge: { name: 'The Forge', truths: [] } }
+		})
+
+		expect(
+			buildRulesPackage({ id: 'fixture', type: 'ruleset', source: sourceDir })
+		).rejects.toThrow('must NOT have fewer than 1 items')
+	})
+
+	test('rejects a world without a name', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-worlds-'))
+		const sourceDir = path.join(workDir, 'source')
+		await writeMinimalRuleset(sourceDir, 'fixture', {
+			worlds: { forge: { truths: ['truth:fixture/origin'] } }
+		})
+
+		expect(
+			buildRulesPackage({ id: 'fixture', type: 'ruleset', source: sourceDir })
+		).rejects.toThrow("must have required property 'name'")
+	})
+
+	test('resolves world truths from a declared dependency', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-worlds-'))
+		const sourceDir = path.join(workDir, 'source')
+		await writeMinimalRuleset(sourceDir, 'fixture', {
+			worlds: {
+				forge: { name: 'The Forge', truths: ['truth:base/origin'] }
+			}
+		})
+		const dependency = {
+			_id: 'base',
+			truths: { origin: { _id: 'truth:base/origin' } }
+		} as unknown as Datasworn.RulesPackage
+
+		const result = await buildRulesPackage(
+			{
+				id: 'fixture',
+				type: 'ruleset',
+				source: sourceDir,
+				outDir: path.join(workDir, 'out')
+			},
+			{ dependencies: [dependency] }
+		)
+
+		expect(result.idRefs.valid).toContain('truth:base/origin')
+	})
+
+	test('rejects an unresolved world truth reference', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-worlds-'))
+		const sourceDir = path.join(workDir, 'source')
+		await writeMinimalRuleset(sourceDir, 'fixture', {
+			worlds: {
+				forge: { name: 'The Forge', truths: ['truth:fixture/missing'] }
+			}
+		})
+
+		expect(
+			buildRulesPackage({ id: 'fixture', type: 'ruleset', source: sourceDir })
+		).rejects.toThrow('truth:fixture/missing')
+	})
+
 	test('rejects a source package ID that differs from the build config', async () => {
 		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-build-'))
 		const sourceDir = path.join(workDir, 'source')
