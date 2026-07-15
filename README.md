@@ -1,11 +1,18 @@
 # Datasworn Community
 
-Clean-history home for the core Datasworn runtime package and build tooling.
+> **What is Datasworn?** A structured JSON format for the rules, assets, moves, and oracles of the Ironsworn family of tabletop RPGs (Ironsworn Classic, Delve, Lodestar, Starforged, Sundered Isles) along with community-authored expansions. Apps that need to render or interact with Ironsworn content — dice tools, Obsidian plugins, VTTs, character sheets — consume Datasworn packages instead of re-transcribing the books themselves.
 
-This repository publishes:
+Clean-history home for the core Datasworn runtime package and build tooling. This repository publishes:
 
-- `@datasworn-community/core`
-- `@datasworn-community/build-tools`
+- `@datasworn-community/core` — TypeScript types + JSON schemas + ID helpers consumed by apps
+- `@datasworn-community/build-tools` — build-time logic used by content packages to turn source YAML into publishable npm artifacts
+
+Content lives in sibling repos:
+[`official-content`](https://github.com/datasworn-community/official-content) (Ironsworn/Delve/Lodestar/Starforged/Sundered Isles),
+[`community-content`](https://github.com/datasworn-community/community-content) (Ancient Wonders, Ironsmith, Starsmith, Fe-Runners),
+[`datasworn-elegy`](https://github.com/datasworn-community/datasworn-elegy) (Elegy),
+[`community-template`](https://github.com/datasworn-community/community-template) (starter for new content packages).
+A web viewer for browsing all of it is at [`viewer`](https://github.com/datasworn-community/viewer) — live at <https://datasworn-community.github.io/viewer/>.
 
 The repository starts as a scaffold for Phase 1 of the Datasworn restructure.
 Implementation files copied or adapted from upstream Datasworn must be recorded
