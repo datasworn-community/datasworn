@@ -97,7 +97,7 @@ jobs:
 
       - name: Setup Node for npm publishing
         if: github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "24"
           registry-url: https://registry.npmjs.org/
@@ -205,7 +205,7 @@ jobs:
 
       - name: Setup Node for npm publishing
         if: steps.plan.outputs.release == 'true'
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "24"
           registry-url: https://registry.npmjs.org/
