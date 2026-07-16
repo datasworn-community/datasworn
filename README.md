@@ -1,22 +1,12 @@
 # Datasworn Community
 
-> **What is Datasworn?** A structured JSON format for the rules, assets, moves, and oracles of the Ironsworn family of tabletop RPGs (Ironsworn Classic, Delve, Lodestar, Starforged, Sundered Isles) along with community-authored expansions. Apps that need to render or interact with Ironsworn content — dice tools, Obsidian plugins, VTTs, character sheets — consume Datasworn packages instead of re-transcribing the books themselves.
+> **What is Datasworn?** Structured JSON for the Ironsworn family of TTRPGs (Classic, Delve, Lodestar, Starforged, Sundered Isles) and community expansions — so apps don't have to re-transcribe the books.
 
-Clean-history home for the core Datasworn runtime package and build tooling. This repository publishes:
+This repo publishes `@datasworn-community/core` (types + schemas) and `@datasworn-community/build-tools` (build-time logic for content packages).
 
-- `@datasworn-community/core` — TypeScript types + JSON schemas + ID helpers consumed by apps
-- `@datasworn-community/build-tools` — build-time logic used by content packages to turn source YAML into publishable npm artifacts
+Content lives elsewhere: [`official-content`](https://github.com/datasworn-community/official-content), [`community-content`](https://github.com/datasworn-community/community-content), [`datasworn-elegy`](https://github.com/datasworn-community/datasworn-elegy), [`community-template`](https://github.com/datasworn-community/community-template). Browse it all in the [viewer](https://datasworn-community.github.io/viewer/).
 
-Content lives in sibling repos:
-[`official-content`](https://github.com/datasworn-community/official-content) (Ironsworn/Delve/Lodestar/Starforged/Sundered Isles),
-[`community-content`](https://github.com/datasworn-community/community-content) (Ancient Wonders, Ironsmith, Starsmith, Fe-Runners),
-[`datasworn-elegy`](https://github.com/datasworn-community/datasworn-elegy) (Elegy),
-[`community-template`](https://github.com/datasworn-community/community-template) (starter for new content packages).
-A web viewer for browsing all of it is at [`viewer`](https://github.com/datasworn-community/viewer) — live at <https://datasworn-community.github.io/viewer/>.
-
-The repository starts as a scaffold for Phase 1 of the Datasworn restructure.
-Implementation files copied or adapted from upstream Datasworn must be recorded
-in `PROVENANCE.md`.
+Files copied or adapted from upstream Datasworn are recorded in `PROVENANCE.md`.
 
 ## Developer guide
 
