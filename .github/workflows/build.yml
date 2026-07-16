@@ -57,7 +57,7 @@ jobs:
       - name: Comment on release policy failure
         if: steps.release-policy.outcome == 'failure' && steps.release-policy.outputs.comment_body != ''
         continue-on-error: true
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           COMMENT_BODY: ${{ steps.release-policy.outputs.comment_body }}
         with:
