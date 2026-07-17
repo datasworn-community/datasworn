@@ -81,7 +81,11 @@ function normalizeSchemaForVersionComparison(value: unknown): unknown {
 	const node = value as JsonObject
 	const normalized: JsonObject = {}
 
-	for (const [key, child] of Object.entries(node)) {
+	// Iterate in a stable sorted order so cosmetic key reordering — e.g.
+	// TypeBox 0.34.52 emitting `required` before `properties` where 0.34.41
+	// emitted it after — doesn't register as a shape change.
+	for (const key of Object.keys(node).sort()) {
+		const child = node[key]
 		if (key === 'title' && typeof child === 'string') {
 			normalized[key] = child.replace(/\bv\d+\.\d+\.\d+(?:[-+][\w.-]+)?\b/, 'v<schema-version>')
 			continue
