@@ -11442,6 +11442,10 @@
 			"title": "World",
 			"description": "A named world and its associated set of setting truths.",
 			"type": "object",
+			"required": [
+				"name",
+				"truths"
+			],
 			"properties": {
 				"name": {
 					"description": "The player-facing name of this world.",
@@ -11460,10 +11464,6 @@
 					}
 				}
 			},
-			"required": [
-				"name",
-				"truths"
-			],
 			"additionalProperties": false
 		}
 	}
