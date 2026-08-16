@@ -157,6 +157,14 @@ export async function buildRulesPackage(
 	for (const filePath of files) {
 		const source = await readSourceFile(filePath)
 		validators.source(source)
+		if (source._id != null && source._id !== normalizedConfig.id)
+			throw new Error(
+				`${filePath}: package _id ${source._id} does not match configured id ${normalizedConfig.id}`
+			)
+		if (source.type != null && source.type !== normalizedConfig.type)
+			throw new Error(
+				`${filePath}: package type ${source.type} does not match configured type ${normalizedConfig.type}`
+			)
 		mergeInto(merged, source as unknown as JsonObject)
 	}
 

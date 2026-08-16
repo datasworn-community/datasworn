@@ -85,6 +85,40 @@ describe('@datasworn-community/build-tools', () => {
 		expect(output.datasworn_version).toBe(DATASWORN_SCHEMA_VERSION)
 	})
 
+	test('rejects a source package ID that differs from the build config', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-build-'))
+		const sourceDir = path.join(workDir, 'source')
+		await writeMinimalRuleset(sourceDir, 'source_id')
+
+		await expect(
+			buildRulesPackage({
+				id: 'config_id',
+				type: 'ruleset',
+				source: sourceDir,
+				outDir: path.join(workDir, 'out')
+			})
+		).rejects.toThrow(
+			'package _id source_id does not match configured id config_id'
+		)
+	})
+
+	test('rejects a source package type that differs from the build config', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-build-'))
+		const sourceDir = path.join(workDir, 'source')
+		await writeMinimalExpansion(sourceDir, 'fixture', 'base')
+
+		await expect(
+			buildRulesPackage({
+				id: 'fixture',
+				type: 'ruleset',
+				source: sourceDir,
+				outDir: path.join(workDir, 'out')
+			})
+		).rejects.toThrow(
+			'package type expansion does not match configured type ruleset'
+		)
+	})
+
 	test('normalizes YAML merges, schema version, and source defaults', async () => {
 		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-yaml-'))
 		const sourceDir = path.join(workDir, 'source')
