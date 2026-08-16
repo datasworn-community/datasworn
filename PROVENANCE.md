@@ -56,8 +56,8 @@ must be recorded here when copied or adapted:
 | `src/migration/history/0.1.0/id_regex_map.json` | `packages/core/migration/0.1.0/id_regex_map.json` | 1.2 | Yes |
 | `src/schema/` | `packages/build-tools/schema-source/schema/` | 1.2 | Yes |
 | `src/scripts/` | `packages/build-tools/src/` and `scripts/` | 1.2 | Adapted |
-| `src/pkg-core/Builders/` | `packages/build-tools/src/rules-package-builder.ts` | 1.2 | Adapted |
-| `src/pkg-core/Validators/` | `packages/build-tools/src/validators.ts` | 1.2 | Adapted |
+| `src/pkg-core/Builders/` | `packages/build-tools/src/rules-package-builder.ts` and `packages/build-tools/src/in-memory-rules-package-builder.ts` | 1.2 | Adapted |
+| `src/pkg-core/Validators/` | `packages/build-tools/src/validators.ts` and `packages/build-tools/src/semantic-validators.ts` | 1.2 | Adapted |
 | `src/scripts/schema/buildSchema.ts` | `packages/build-tools/schema-source/scripts/schema/buildSchema.ts` | 1.4 | Adapted |
 | `src/scripts/codegen/` | `packages/build-tools/schema-source/scripts/codegen/` | 1.4 | Adapted |
 | `src/scripts/datasworn/sort.ts` | `packages/build-tools/schema-source/scripts/datasworn/sort.ts` | 1.4 | Adapted |

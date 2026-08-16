@@ -5,14 +5,19 @@ import path from 'node:path'
 
 import {
 	DATASWORN_SCHEMA_VERSION,
-	type Datasworn
+	type Datasworn,
+	type DataswornSource
 } from '@datasworn-community/core'
 import {
 	buildContentPackages,
 	buildRulesPackage,
 	extractIdRefs,
 	loadCoreSchema,
+	RulesPackageBuilder,
 	resolveCoreSchemaPath,
+	validateDiceRange,
+	validateOracleCollection,
+	validateOracleRollable,
 	validateIdRefs
 } from '@datasworn-community/build-tools'
 
@@ -23,6 +28,201 @@ const repository = {
 }
 
 describe('@datasworn-community/build-tools', () => {
+	test('builds in-memory source fragments after callers remove an invalid file', () => {
+		const outputValidator = (value: unknown): value is Datasworn.RulesPackage =>
+			typeof value === 'object' && value !== null
+		const sourceValidator = (
+			value: unknown
+		): value is DataswornSource.RulesPackage => {
+			if (
+				typeof value === 'object' &&
+				value !== null &&
+				'invalid' in value
+			)
+				throw new Error('invalid source fragment')
+			return true
+		}
+
+		RulesPackageBuilder.init({
+			validator: outputValidator,
+			sourceValidator
+		})
+		expect(RulesPackageBuilder.isInitialized).toBe(true)
+		expect(RulesPackageBuilder.schemaValidator).toBe(outputValidator)
+		expect(RulesPackageBuilder.sourceSchemaValidator).toBe(sourceValidator)
+
+		const builder = new RulesPackageBuilder('fixture', console)
+		builder.addFiles(
+			{
+				name: 'b.json',
+				data: {
+					_id: 'fixture',
+					type: 'ruleset',
+					datasworn_version: DATASWORN_SCHEMA_VERSION,
+					title: 'Fixture'
+				} as DataswornSource.RulesPackage
+			},
+			{
+				name: 'bad.json',
+				data: { invalid: true } as unknown as DataswornSource.RulesPackage
+			},
+			{
+				name: 'a.json',
+				data: {
+					authors: [{ name: 'Datasworn Community' }],
+					date: '2026-01-01',
+					url: 'https://example.com',
+					license: 'https://opensource.org/licenses/MIT',
+					oracles: {},
+					moves: {},
+					assets: {},
+					truths: {},
+					rules: {
+						stats: {},
+						condition_meters: {},
+						impacts: {},
+						special_tracks: {},
+						tags: {}
+					}
+				} as DataswornSource.RulesPackage
+			}
+		)
+
+		expect(builder.errors.get('bad.json')).toBeInstanceOf(Error)
+		builder.files.delete('bad.json')
+		builder.errors.delete('bad.json')
+
+		expect(builder.build()).toBe(builder)
+		expect(builder.toJSON()).toMatchObject({
+			_id: 'fixture',
+			type: 'ruleset',
+			title: 'Fixture'
+		})
+	})
+
+	test('rejects a gap between numbered oracle rows across a cosmetic row', () => {
+		RulesPackageBuilder.init({
+			validator: (_value): _value is Datasworn.RulesPackage => true,
+			sourceValidator: (
+				_value
+			): _value is DataswornSource.RulesPackage =>
+				true
+		})
+		const builder = new RulesPackageBuilder('fixture', console)
+		builder.addFiles({
+			name: 'oracles.json',
+			data: inMemoryRuleset({
+				oracles: {
+					fixture: {
+						name: 'Fixture Oracles',
+						type: 'oracle_collection',
+						oracle_type: 'tables',
+						_source: sourceInfo,
+						contents: {
+							broken: {
+								name: 'Broken Table',
+								type: 'oracle_rollable',
+								oracle_type: 'table_text',
+								_source: sourceInfo,
+								dice: '1d6',
+								rows: [
+									{ roll: { min: 1, max: 2 }, text: 'First' },
+									{ roll: null, text: 'Decoration' },
+									{ roll: { min: 4, max: 6 }, text: 'Last' }
+								]
+							}
+						}
+					}
+				}
+			})
+		})
+
+		expect(() => builder.build()).toThrow('not sequential')
+	})
+
+	test('rejects inconsistent shared text in an oracle collection', () => {
+		RulesPackageBuilder.init({
+			validator: (_value): _value is Datasworn.RulesPackage => true,
+			sourceValidator: (
+				_value
+			): _value is DataswornSource.RulesPackage =>
+				true
+		})
+		const builder = new RulesPackageBuilder('fixture', console)
+		builder.addFiles({
+			name: 'oracles.json',
+			data: inMemoryRuleset({
+				oracles: {
+					shared: {
+						name: 'Shared Result',
+						type: 'oracle_collection',
+						oracle_type: 'table_shared_text',
+						_source: sourceInfo,
+						contents: {
+							first: {
+								name: 'First Roll',
+								type: 'oracle_rollable',
+								oracle_type: 'column_text',
+								dice: '1d2',
+								rows: [
+									{ roll: { min: 1, max: 1 }, text: 'Shared' },
+									{ roll: { min: 2, max: 2 }, text: 'Ending' }
+								]
+							},
+							second: {
+								name: 'Second Roll',
+								type: 'oracle_rollable',
+								oracle_type: 'column_text',
+								dice: '1d2',
+								rows: [
+									{ roll: { min: 1, max: 1 }, text: 'Different' },
+									{ roll: { min: 2, max: 2 }, text: 'Ending' }
+								]
+							}
+						}
+					}
+				}
+			})
+		})
+
+		expect(() => builder.build()).toThrow(
+			'table_shared_text child OracleRollables must have the same text content'
+		)
+	})
+
+	test('rejects a reversed dice range through the public validator export', () => {
+		expect(() => validateDiceRange({ min: 6, max: 1 })).toThrow(
+			'DiceRange min (6) is greater than max (1)'
+		)
+	})
+
+	test('rejects oracle rows outside the possible dice bounds', () => {
+		expect(() =>
+			validateOracleRollable({
+				dice: '1d6',
+				rows: [{ roll: { min: 1, max: 7 }, text: 'Impossible' }]
+			} as Datasworn.OracleRollable)
+		).toThrow('greater than the maximum possible roll of 1d6 (6)')
+	})
+
+	test('rejects mismatched roll ranges in table_shared_rolls children', () => {
+		expect(() =>
+			validateOracleCollection({
+				oracle_type: 'table_shared_rolls',
+				contents: {
+					first: {
+						rows: [{ roll: { min: 1, max: 2 }, text: 'First' }]
+					},
+					second: {
+						rows: [{ roll: { min: 1, max: 3 }, text: 'Second' }]
+					}
+				}
+			} as unknown as Datasworn.OracleCollection)
+		).toThrow(
+			'table_shared_rolls child OracleRollables must have the same roll ranges'
+		)
+	})
+
 	test('loads JSON schemas shipped by core', async () => {
 		const schemaPath = resolveCoreSchemaPath('datasworn.schema.json')
 		const schema = await loadCoreSchema('datasworn.schema.json')
@@ -279,6 +479,37 @@ async function writeMinimalRuleset(
 			...extra
 		})}\n`
 	)
+}
+
+const sourceInfo = {
+	title: 'Fixture',
+	authors: [{ name: 'Datasworn Community' }],
+	date: '2026-01-01',
+	url: 'https://example.com',
+	license: 'https://opensource.org/licenses/MIT'
+}
+
+function inMemoryRuleset(
+	extra: Record<string, unknown> = {}
+): DataswornSource.RulesPackage {
+	return {
+		_id: 'fixture',
+		type: 'ruleset',
+		datasworn_version: DATASWORN_SCHEMA_VERSION,
+		...sourceInfo,
+		oracles: {},
+		moves: {},
+		assets: {},
+		truths: {},
+		rules: {
+			stats: {},
+			condition_meters: {},
+			impacts: {},
+			special_tracks: {},
+			tags: {}
+		},
+		...extra
+	} as DataswornSource.RulesPackage
 }
 
 async function writeMinimalExpansion(

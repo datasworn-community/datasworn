@@ -2,12 +2,15 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import {
 	DATASWORN_SCHEMA_VERSION,
-	IdParser,
 	type Datasworn,
 	type DataswornSource
 } from '@datasworn-community/core'
 import YAML from 'yaml'
 
+import {
+	assembleRulesPackage,
+	type NamedRulesPackageSource
+} from './in-memory-rules-package-builder.js'
 import {
 	validateIdRefs,
 	type IdRefReport
@@ -72,20 +75,6 @@ function cloneJsonValue<TValue>(value: TValue): TValue {
 	return JSON.parse(JSON.stringify(value)) as TValue
 }
 
-function mergeInto(target: JsonObject, source: JsonObject): JsonObject {
-	for (const [key, value] of Object.entries(source)) {
-		if (isObject(value)) {
-			const nextTarget = target[key]
-			if (!isObject(nextTarget)) target[key] = {}
-			mergeInto(target[key] as JsonObject, value)
-		} else {
-			target[key] = value
-		}
-	}
-
-	return target
-}
-
 function sortValue(value: unknown): unknown {
 	if (Array.isArray(value)) return value.map(sortValue)
 	if (!isObject(value)) return value
@@ -147,34 +136,16 @@ export async function buildRulesPackage(
 		>())
 	const outDir = options.outDir ?? normalizedConfig.outDir ?? 'datasworn'
 	const files = await collectSourceFiles(normalizedConfig.source)
-	const index = new Map<string, unknown>()
-	const merged = {
-		_id: normalizedConfig.id,
-		type: normalizedConfig.type,
-		datasworn_version: DATASWORN_SCHEMA_VERSION
-	} as unknown as JsonObject
-
+	const sources: NamedRulesPackageSource[] = []
 	for (const filePath of files) {
 		const source = await readSourceFile(filePath)
-		validators.source(source)
-		if (source._id != null && source._id !== normalizedConfig.id)
-			throw new Error(
-				`${filePath}: package _id ${source._id} does not match configured id ${normalizedConfig.id}`
-			)
-		if (source.type != null && source.type !== normalizedConfig.type)
-			throw new Error(
-				`${filePath}: package type ${source.type} does not match configured type ${normalizedConfig.type}`
-			)
-		mergeInto(merged, source as unknown as JsonObject)
+		sources.push({ name: filePath, data: source })
 	}
 
-	IdParser.assignIdsInRulesPackage(
-		merged as unknown as DataswornSource.RulesPackage,
-		index
-	)
-
-	const data = merged as unknown as Datasworn.RulesPackage
-	validators.output(data)
+	const { data } = assembleRulesPackage(sources, validators, {
+		id: normalizedConfig.id,
+		type: normalizedConfig.type
+	})
 
 	// Validate ID references against a tree of this package plus any preloaded
 	// dependencies. This catches cross-package references (e.g. an expansion
