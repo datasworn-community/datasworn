@@ -247,7 +247,138 @@ async function writeMinimalRuleset(
 	)
 }
 
+async function writeMinimalExpansion(
+	sourceDir: string,
+	id: string,
+	ruleset: string
+) {
+	await mkdir(sourceDir, { recursive: true })
+	await writeFile(
+		path.join(sourceDir, 'expansion.json'),
+		`${JSON.stringify({
+			_id: id,
+			type: 'expansion',
+			ruleset,
+			datasworn_version: DATASWORN_SCHEMA_VERSION,
+			title: id,
+			authors: [
+				{
+					name: 'Datasworn Community'
+				}
+			],
+			date: '2026-01-01',
+			url: 'https://example.com',
+			license: 'https://opensource.org/licenses/MIT',
+			oracles: {},
+			moves: {},
+			assets: {},
+			truths: {}
+		})}\n`
+	)
+}
+
 describe('buildContentPackages', () => {
+	test('rejects a config ID that is not a Datasworn package ID', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-content-'))
+		const sourceDir = path.join(workDir, 'source', 'base')
+		await writeMinimalRuleset(sourceDir, 'base')
+
+		await expect(
+			buildContentPackages({
+				outDir: path.join(workDir, 'datasworn'),
+				packageOutDir: path.join(workDir, 'packages'),
+				repository,
+				packages: [
+					{
+						id: 'base-invalid',
+						type: 'ruleset',
+						source: sourceDir,
+						packageName: '@datasworn-community/base',
+						schemaLine
+					}
+				]
+			})
+		).rejects.toThrow(
+			'base-invalid: package ID must match /^[a-z][a-z0-9_]*$/'
+		)
+	})
+
+	test('generates typed ruleset exports using the Datasworn package ID', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-content-'))
+		const sourceDir = path.join(workDir, 'source', 'base')
+		const packageOutDir = path.join(workDir, 'packages')
+		await writeMinimalRuleset(sourceDir, 'base')
+
+		await buildContentPackages({
+			outDir: path.join(workDir, 'datasworn'),
+			packageOutDir,
+			repository,
+			packages: [
+				{
+					id: 'base',
+					type: 'ruleset',
+					source: sourceDir,
+					packageName: '@datasworn-community/base',
+					schemaLine
+				}
+			]
+		})
+
+		const packageDir = path.join(packageOutDir, 'base')
+		expect({
+			indexJs: await readFile(path.join(packageDir, 'index.js'), 'utf8'),
+			declaration: await readFile(path.join(packageDir, 'index.d.ts'), 'utf8')
+		}).toEqual({
+			indexJs:
+				"import data from './json/base.json' with { type: 'json' }\n\nexport { data, data as base }\nexport default data\n",
+			declaration:
+				"import type { Datasworn } from '@datasworn-community/core'\n\ndeclare const data: Datasworn.Ruleset\nexport { data, data as base }\nexport default data\n"
+		})
+	})
+
+	test('generates typed expansion exports using the Datasworn package ID', async () => {
+		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-content-'))
+		const baseSource = path.join(workDir, 'source', 'base')
+		const expansionSource = path.join(workDir, 'source', 'sundered_isles')
+		const packageOutDir = path.join(workDir, 'packages')
+		await writeMinimalRuleset(baseSource, 'base')
+		await writeMinimalExpansion(expansionSource, 'sundered_isles', 'base')
+
+		await buildContentPackages({
+			outDir: path.join(workDir, 'datasworn'),
+			packageOutDir,
+			repository,
+			packages: [
+				{
+					id: 'base',
+					type: 'ruleset',
+					source: baseSource,
+					packageName: '@datasworn-community/base',
+					schemaLine
+				},
+				{
+					id: 'sundered_isles',
+					type: 'expansion',
+					source: expansionSource,
+					packageName: '@datasworn-community/sundered-isles',
+					schemaLine,
+					dependencies: ['base']
+				}
+			]
+		})
+
+		const packageDir = path.join(packageOutDir, 'sundered_isles')
+		expect({
+			indexJs: await readFile(path.join(packageDir, 'index.js'), 'utf8'),
+			declaration: await readFile(path.join(packageDir, 'index.d.ts'), 'utf8')
+		}).toEqual({
+			indexJs:
+				"import data from './json/sundered_isles.json' with { type: 'json' }\n\nexport { data, data as sundered_isles }\nexport default data\n",
+			declaration:
+				"import type { Datasworn } from '@datasworn-community/core'\n\ndeclare const data: Datasworn.Expansion\nexport { data, data as sundered_isles }\nexport default data\n"
+		})
+	})
+
 	test('builds packages in dependency order and writes publishable artifacts', async () => {
 		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-content-'))
 		const baseSource = path.join(workDir, 'source', 'base')
