@@ -2,7 +2,11 @@ import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 
-import { DATASWORN_SCHEMA_VERSION, type Datasworn } from '@datasworn-community/core'
+import {
+	DATASWORN_SCHEMA_VERSION,
+	IdElements,
+	type Datasworn
+} from '@datasworn-community/core'
 
 import {
 	buildRulesPackage,
@@ -154,6 +158,15 @@ function assertNoDuplicatePackageIds(packages: readonly ContentPackageBuildConfi
 	for (const config of packages) {
 		if (seen.has(config.id)) throw new Error(`Duplicate package id: ${config.id}`)
 		seen.add(config.id)
+	}
+}
+
+function assertPackageIds(packages: readonly ContentPackageBuildConfig[]): void {
+	for (const config of packages) {
+		if (!IdElements.TypeGuard.RulesPackageId(config.id))
+			throw new Error(
+				`${config.id}: package ID must match ${IdElements.Pattern.RulesPackageId.toString()}`
+			)
 	}
 }
 
@@ -438,6 +451,11 @@ async function writePublishableArtifacts(
 	const packageJson = packageJsonFor(config, dependencies, repository)
 	const packageDir = path.join(packageOutDir, config.id)
 	const jsonDir = path.join(packageDir, 'json')
+	const packageType = config.type === 'ruleset' ? 'Ruleset' : 'Expansion'
+	const namedExports =
+		config.id === 'data' || config.id === 'default'
+			? 'export { data }'
+			: `export { data, data as ${config.id} }`
 
 	await mkdir(jsonDir, { recursive: true })
 	await copyPackageAssets(config, packageDir, packageJson)
@@ -446,11 +464,11 @@ async function writePublishableArtifacts(
 		writeFile(path.join(packageDir, 'package.json'), stableJson(packageJson)),
 		writeFile(
 			path.join(packageDir, 'index.js'),
-			`import data from './json/${config.id}.json' with { type: 'json' }\n\nexport { data }\nexport default data\n`
+			`import data from './json/${config.id}.json' with { type: 'json' }\n\n${namedExports}\nexport default data\n`
 		),
 		writeFile(
 			path.join(packageDir, 'index.d.ts'),
-			"import type { Datasworn } from '@datasworn-community/core'\n\ndeclare const data: Datasworn.RulesPackage\nexport { data }\nexport default data\n"
+			`import type { Datasworn } from '@datasworn-community/core'\n\ndeclare const data: Datasworn.${packageType}\n${namedExports}\nexport default data\n`
 		),
 		writeFile(path.join(jsonDir, `${config.id}.json`), stableJson(result.data))
 	])
@@ -465,6 +483,7 @@ export async function buildContentPackages(
 	const outDir = config.outDir ?? 'datasworn'
 	const publicJsonOutDir = config.publicJsonOutDir
 	const packageOutDir = config.packageOutDir ?? 'dist/packages'
+	assertPackageIds(config.packages)
 	const ordered = topologicalPackageOrder(config.packages)
 	const builtPackages: BuiltPackageMap = new Map()
 	const results: ContentPackageBuildResult[] = []

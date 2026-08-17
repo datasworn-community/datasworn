@@ -24,6 +24,38 @@ packageOutDir: dist/packages
 This writes flat `<package-id>.json` files, `manifest.json`, and `README.md`.
 Do not edit those generated files by hand.
 
+## In-memory builds
+
+Embedded consumers such as Iron Vault can compile already-parsed fragments with
+`RulesPackageBuilder`. Import it from `@datasworn-community/build-tools`, rather
+than from a deep path in core, and initialize it with synchronous schema
+validators before constructing a builder:
+
+```ts
+import { RulesPackageBuilder } from '@datasworn-community/build-tools'
+
+RulesPackageBuilder.init({ validator, sourceValidator })
+
+const builder = new RulesPackageBuilder('my_ruleset', console)
+builder.addFiles(
+	{ name: 'package.md', data: packageFragment },
+	{ name: 'oracles/characters.md', data: oracleFragment }
+)
+
+if (builder.errors.has('oracles/characters.md')) {
+	builder.files.delete('oracles/characters.md')
+	builder.errors.delete('oracles/characters.md')
+}
+
+const data = builder.build().toJSON()
+```
+
+`files` and `errors` are keyed by fragment name, so consumers can inspect or
+remove individual inputs before rebuilding. Semantic oracle validation runs as
+part of `build()`. ID-reference validation remains a separate exported operation:
+call `validateIdRefs(data, tree)` when the assembled package and its dependency
+tree are available.
+
 The upstream TypeBox schema source is imported under `schema-source/` as source
 material for the schema generation work. Runtime validation uses the generated
 schemas shipped by core.
