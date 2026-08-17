@@ -163,11 +163,21 @@ jobs:
       pull-requests: read
 
     steps:
+      # The default workflow token cannot satisfy the "Protect main" ruleset, so
+      # the release commit and tag are pushed with a GitHub App token instead.
+      # The app is on the ruleset bypass list; GITHUB_TOKEN cannot be.
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          token: ${{ github.token }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -193,14 +203,19 @@ jobs:
 
       - name: Configure Git
         if: steps.plan.outputs.release == 'true'
+        env:
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set -euo pipefail
+          user_id="$(gh api "/users/${APP_SLUG}[bot]" --jq .id)"
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${user_id}+${APP_SLUG}[bot]@users.noreply.github.com"
 
       - name: Release
         if: steps.plan.outputs.release == 'true'
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: bunx release-it "${{ steps.plan.outputs.version }}" --ci
 
       - name: Setup Node for npm publishing
