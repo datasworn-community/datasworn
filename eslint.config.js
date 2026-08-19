@@ -16,6 +16,32 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.strict,
   {
+    files: ['packages/build-tools/src/**/*.ts'],
+    ignores: [
+      'packages/build-tools/src/node/**',
+      'packages/build-tools/src/cli/**'
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['node:*'],
+              message:
+                'The build-tools root entry must stay bundler-safe. Put filesystem code in src/node/ and export it from the "./node" subpath.'
+            },
+            {
+              group: ['./node/*', '../node/*'],
+              message:
+                'src/node/ reaches Node builtins, so importing it from the root graph would break browser and worker bundles. Consumers import it as "@datasworn-community/build-tools/node".'
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
     files: ['.github/actions/**/*.mjs'],
     languageOptions: {
       globals: {

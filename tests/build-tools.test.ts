@@ -9,17 +9,19 @@ import {
 	type DataswornSource
 } from '@datasworn-community/core'
 import {
-	buildContentPackages,
-	buildRulesPackage,
 	extractIdRefs,
-	loadCoreSchema,
 	RulesPackageBuilder,
-	resolveCoreSchemaPath,
 	validateDiceRange,
 	validateOracleCollection,
 	validateOracleRollable,
 	validateIdRefs
 } from '@datasworn-community/build-tools'
+import {
+	buildContentPackages,
+	buildRulesPackage,
+	loadCoreSchema,
+	resolveCoreSchemaPath
+} from '@datasworn-community/build-tools/node'
 
 const schemaLine = DATASWORN_SCHEMA_VERSION.split('.').slice(0, 2).join('.')
 const repository = {

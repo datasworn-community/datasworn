@@ -8,9 +8,31 @@ the files, validates the built package, and writes distribution JSON.
 
 `datasworn-migrate` applies Datasworn ID replacement maps to JSON files.
 
-The build tools resolve core's shipped schemas at runtime through
+## Entry points
+
+Despite the package name, most of what this package exports is portable. It has
+two entry points, split by whether the code touches the filesystem:
+
+| Import | Contains | Safe to bundle for browsers |
+| --- | --- | --- |
+| `@datasworn-community/build-tools` | `RulesPackageBuilder`, `createDataswornValidator`, semantic validators, ID-reference helpers | Yes |
+| `@datasworn-community/build-tools/node` | `buildRulesPackage`, `buildContentPackages`, schema loading from disk, `createDataswornValidators` | No — imports Node builtins |
+
+Nothing reachable from the package root imports a Node builtin, so embedded
+consumers such as Iron Vault can bundle it for browsers, Obsidian plugins, and
+web workers. This matters more than tree shaking suggests: esbuild resolves every
+import during its scan pass, before tree shaking runs, so a single unreachable
+`node:fs` import anywhere in the root's module graph is a hard build error for
+those consumers. `sideEffects: false` does not change that.
+
+The CLI binaries use the `/node` entry, so nothing about this split affects
+`datasworn-build` or `datasworn-migrate`.
+
+The `/node` entry resolves core's shipped schemas at runtime through
 `@datasworn-community/core/json/*`, so consumers should install matching versions
-of `@datasworn-community/core` and `@datasworn-community/build-tools`.
+of `@datasworn-community/core` and `@datasworn-community/build-tools`. Consumers
+that cannot read from disk should import those JSON files themselves and compile
+them with `createDataswornValidator` from the package root.
 
 Multi-package content builds can also write a checked-in, GitHub-friendly raw
 JSON directory by setting `publicJsonOutDir`:

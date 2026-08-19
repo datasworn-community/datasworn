@@ -2,8 +2,6 @@ import { Ajv, type ValidateFunction } from 'ajv/dist/ajv.js'
 import type { Options } from 'ajv/dist/core.js'
 import addFormatsModule from 'ajv-formats/dist/index.js'
 
-import { loadCoreSchemas } from './schema.js'
-
 export type SchemaValidator<TTarget> = (data: unknown) => data is TTarget
 
 export interface DataswornValidators<TOutput, TSource> {
@@ -45,20 +43,5 @@ export function createDataswornValidator<TTarget>(
 		if (validate(data)) return true
 
 		throw new Error(`${name} schema validation failed: ${formatErrors(validate)}`)
-	}
-}
-
-export async function createDataswornValidators<TOutput, TSource>(): Promise<
-	DataswornValidators<TOutput, TSource>
-> {
-	const schemas = await loadCoreSchemas()
-
-	return {
-		output: createDataswornValidator<TOutput>(schemas.datasworn, 'Datasworn'),
-		source: createDataswornValidator<TSource>(
-			schemas.source,
-			'Datasworn source',
-			{ useDefaults: 'empty' }
-		)
 	}
 }

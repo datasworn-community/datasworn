@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 import { existsSync } from 'node:fs'
 
-import { readBuildConfig } from '../config.js'
+import { readBuildConfig } from '../node/config.js'
 import {
 	buildContentPackages,
 	type MultiPackageBuildConfig
-} from '../content-package-builder.js'
+} from '../node/content-package-builder.js'
 import {
 	buildRulesPackage,
 	type RulesPackageBuildConfig
-} from '../rules-package-builder.js'
+} from '../node/rules-package-builder.js'
 import { hasArg, readArg } from './args.js'
 
 function usage(): never {

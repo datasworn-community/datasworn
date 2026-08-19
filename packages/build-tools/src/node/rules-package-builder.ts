@@ -10,15 +10,13 @@ import YAML from 'yaml'
 import {
 	assembleRulesPackage,
 	type NamedRulesPackageSource
-} from './in-memory-rules-package-builder.js'
+} from '../in-memory-rules-package-builder.js'
 import {
 	validateIdRefs,
 	type IdRefReport
-} from './id-references.js'
-import {
-	createDataswornValidators,
-	type DataswornValidators
-} from './validators.js'
+} from '../id-references.js'
+import type { DataswornValidators } from '../validators.js'
+import { createDataswornValidators } from './validators.js'
 
 export interface RulesPackageBuildConfig {
 	id: string
