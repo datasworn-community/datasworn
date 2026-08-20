@@ -13,7 +13,7 @@ import {
 	type RulesPackageBuildConfig,
 	type RulesPackageBuildResult
 } from './rules-package-builder.js'
-import { validateIdRefs } from './id-references.js'
+import { validateIdRefs } from '../id-references.js'
 
 const require = createRequire(import.meta.url)
 
