@@ -51,11 +51,11 @@
   "homepage": "https://github.com/datasworn-community/datasworn#readme",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/bun": "^1.3.14",
+    "@types/bun": "^1.4.0",
     "esbuild": "^0.28.2",
-    "eslint": "^10.8.0",
-    "release-it": "^21.0.0",
+    "eslint": "^10.9.0",
+    "release-it": "^21.0.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.65.0"
+    "typescript-eslint": "^8.67.0"
   }
 }
