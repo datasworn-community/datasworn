@@ -32,6 +32,7 @@ namespace TypeNode {
 		delve_site_domain: Datasworn.DelveSiteDomain
 		delve_site_theme: Datasworn.DelveSiteTheme
 		rarity: Datasworn.Rarity
+		world: Datasworn.World
 	}
 
 	type CollectableTypeMap = {
@@ -60,6 +61,7 @@ namespace TypeNode {
 		delve_site_domain: DataswornSource.DelveSiteDomain
 		delve_site_theme: DataswornSource.DelveSiteTheme
 		rarity: DataswornSource.Rarity
+		world: DataswornSource.World
 	}
 
 	type CollectableSourceTypeMap = {

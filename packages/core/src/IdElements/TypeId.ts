@@ -32,7 +32,8 @@ namespace TypeId {
 		'delve_site_domain',
 		'delve_site_theme',
 		'rarity',
-		'truth'
+		'truth',
+		'world'
 	] as const
 	export type NonCollectable = (typeof NonCollectable)[number]
 
@@ -276,6 +277,7 @@ namespace TypeId {
 		'delve_site_theme',
 		'rarity',
 		'truth',
+		'world',
 		'ability',
 		'condition',
 		'outcome',
@@ -304,7 +306,8 @@ namespace TypeId {
 		truth: 'truths',
 		delve_site_domain: 'site_domains',
 		delve_site_theme: 'site_themes',
-		rarity: 'rarities'
+		rarity: 'rarities',
+		world: 'worlds'
 	} as const satisfies Record<Primary, keyof Datasworn.RulesPackage>
 
 	export type BranchKey<T extends Primary = Primary> = (typeof BranchKey)[T]
