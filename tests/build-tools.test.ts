@@ -322,11 +322,27 @@ describe('@datasworn-community/build-tools', () => {
 		},
 		worlds: {
 			first: {
-				label: 'The First World',
+				name: 'The First World',
+				type: 'world',
+				_source: {
+					title: 'Fixture',
+					authors: [{ name: 'Datasworn Community' }],
+					date: '2026-01-01',
+					url: 'https://example.com',
+					license: 'https://opensource.org/licenses/MIT'
+				},
 				truths: ['truth:fixture/origin', 'truth:fixture/legacy']
 			},
 			second: {
-				label: 'The Second World',
+				name: 'The Second World',
+				type: 'world',
+				_source: {
+					title: 'Fixture',
+					authors: [{ name: 'Datasworn Community' }],
+					date: '2026-01-01',
+					url: 'https://example.com',
+					license: 'https://opensource.org/licenses/MIT'
+				},
 				truths: ['truth:fixture/legacy']
 			}
 		}
@@ -341,13 +357,14 @@ describe('@datasworn-community/build-tools', () => {
 		const data = result.data
 		if (data.worlds == null) throw new Error('Expected worlds')
 
-		expect(data.worlds.first.label).toBe('The First World')
+		expect(data.worlds.first.name).toBe('The First World')
 		expect(data.worlds.first.truths).toEqual([
 			'truth:fixture/origin',
 			'truth:fixture/legacy'
 		])
 		expect(data.worlds.second.truths).toEqual(['truth:fixture/legacy'])
-		expect('_id' in data.worlds.first).toBe(false)
+		expect(data.worlds.first._id).toBe('world:fixture/first')
+		expect(data.worlds.first.type).toBe('world')
 		if (data.truths == null) throw new Error('Expected truths')
 		expect(data.truths.origin._id).toBe('truth:fixture/origin')
 		expect(data.truths.legacy._id).toBe('truth:fixture/legacy')
@@ -356,10 +373,12 @@ describe('@datasworn-community/build-tools', () => {
 			await readFile(result.outFile, 'utf8')
 		) as Datasworn.RulesPackage
 		if (emitted.worlds == null) throw new Error('Expected emitted worlds')
-		expect(emitted.worlds.first).toEqual({
-			label: 'The First World',
-			truths: ['truth:fixture/origin', 'truth:fixture/legacy']
-		})
+		expect(emitted.worlds.first._id).toBe('world:fixture/first')
+		expect(emitted.worlds.first.name).toBe('The First World')
+		expect(emitted.worlds.first.truths).toEqual([
+			'truth:fixture/origin',
+			'truth:fixture/legacy'
+		])
 	})
 
 	test('rejects duplicate truths within a world', async () => {
@@ -368,7 +387,15 @@ describe('@datasworn-community/build-tools', () => {
 		await writeMinimalRuleset(sourceDir, 'fixture', {
 			worlds: {
 				forge: {
-					label: 'The Forge',
+					name: 'The Forge',
+					type: 'world',
+					_source: {
+						title: 'Fixture',
+						authors: [{ name: 'Datasworn Community' }],
+						date: '2026-01-01',
+						url: 'https://example.com',
+						license: 'https://opensource.org/licenses/MIT'
+					},
 					truths: ['truth:fixture/origin', 'truth:fixture/origin']
 				}
 			}
@@ -383,7 +410,20 @@ describe('@datasworn-community/build-tools', () => {
 		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-worlds-'))
 		const sourceDir = path.join(workDir, 'source')
 		await writeMinimalRuleset(sourceDir, 'fixture', {
-			worlds: { forge: { label: 'The Forge', truths: [] } }
+			worlds: {
+				forge: {
+					name: 'The Forge',
+					type: 'world',
+					_source: {
+						title: 'Fixture',
+						authors: [{ name: 'Datasworn Community' }],
+						date: '2026-01-01',
+						url: 'https://example.com',
+						license: 'https://opensource.org/licenses/MIT'
+					},
+					truths: []
+				}
+			}
 		})
 
 		expect(
@@ -391,16 +431,28 @@ describe('@datasworn-community/build-tools', () => {
 		).rejects.toThrow('must NOT have fewer than 1 items')
 	})
 
-	test('rejects a world without a label', async () => {
+	test('rejects a world without a name', async () => {
 		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-worlds-'))
 		const sourceDir = path.join(workDir, 'source')
 		await writeMinimalRuleset(sourceDir, 'fixture', {
-			worlds: { forge: { truths: ['truth:fixture/origin'] } }
+			worlds: {
+				forge: {
+					type: 'world',
+					_source: {
+						title: 'Fixture',
+						authors: [{ name: 'Datasworn Community' }],
+						date: '2026-01-01',
+						url: 'https://example.com',
+						license: 'https://opensource.org/licenses/MIT'
+					},
+					truths: ['truth:fixture/origin']
+				}
+			}
 		})
 
 		expect(
 			buildRulesPackage({ id: 'fixture', type: 'ruleset', source: sourceDir })
-		).rejects.toThrow("must have required property 'label'")
+		).rejects.toThrow("must have required property 'name'")
 	})
 
 	test('resolves world truths from a declared dependency', async () => {
@@ -408,7 +460,18 @@ describe('@datasworn-community/build-tools', () => {
 		const sourceDir = path.join(workDir, 'source')
 		await writeMinimalRuleset(sourceDir, 'fixture', {
 			worlds: {
-				forge: { label: 'The Forge', truths: ['truth:base/origin'] }
+				forge: {
+					name: 'The Forge',
+					type: 'world',
+					_source: {
+						title: 'Fixture',
+						authors: [{ name: 'Datasworn Community' }],
+						date: '2026-01-01',
+						url: 'https://example.com',
+						license: 'https://opensource.org/licenses/MIT'
+					},
+					truths: ['truth:base/origin']
+				}
 			}
 		})
 		const dependency = {
@@ -434,7 +497,18 @@ describe('@datasworn-community/build-tools', () => {
 		const sourceDir = path.join(workDir, 'source')
 		await writeMinimalRuleset(sourceDir, 'fixture', {
 			worlds: {
-				forge: { label: 'The Forge', truths: ['truth:fixture/missing'] }
+				forge: {
+					name: 'The Forge',
+					type: 'world',
+					_source: {
+						title: 'Fixture',
+						authors: [{ name: 'Datasworn Community' }],
+						date: '2026-01-01',
+						url: 'https://example.com',
+						license: 'https://opensource.org/licenses/MIT'
+					},
+					truths: ['truth:fixture/missing']
+				}
 			}
 		})
 

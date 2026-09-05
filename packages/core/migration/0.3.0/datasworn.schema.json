@@ -126,6 +126,9 @@
 				},
 				{
 					"$ref": "#/definitions/TruthOptionId"
+				},
+				{
+					"$ref": "#/definitions/WorldId"
 				}
 			]
 		},
@@ -237,6 +240,9 @@
 				},
 				{
 					"$ref": "#/definitions/TruthOptionIdWildcard"
+				},
+				{
+					"$ref": "#/definitions/WorldIdWildcard"
 				}
 			]
 		},
@@ -6595,7 +6601,8 @@
 				"delve_site_domain",
 				"delve_site_theme",
 				"rarity",
-				"truth"
+				"truth",
+				"world"
 			]
 		},
 		"Npc": {
@@ -10270,6 +10277,9 @@
 					"$ref": "#/definitions/TruthId"
 				},
 				{
+					"$ref": "#/definitions/WorldId"
+				},
+				{
 					"type": "array",
 					"items": {
 						"anyOf": [
@@ -10317,6 +10327,9 @@
 							},
 							{
 								"$ref": "#/definitions/TruthIdWildcard"
+							},
+							{
+								"$ref": "#/definitions/WorldIdWildcard"
 							}
 						]
 					}
@@ -10540,7 +10553,9 @@
 										"#/definitions/TruthOptionOracleRollableRowId",
 										"#/definitions/TruthOptionOracleRollableRowIdWildcard",
 										"#/definitions/WebpImageUrl",
-										"#/definitions/WebUrl"
+										"#/definitions/WebUrl",
+										"#/definitions/WorldId",
+										"#/definitions/WorldIdWildcard"
 									]
 								}
 							}
@@ -11377,27 +11392,86 @@
 			"description": "A named world and its associated set of setting truths.",
 			"type": "object",
 			"required": [
-				"label",
-				"truths"
+				"_id",
+				"name",
+				"_source",
+				"truths",
+				"type"
 			],
 			"properties": {
-				"label": {
-					"description": "The player-facing name of this world.",
-					"examples": [
-						"The Ironlands",
-						"The Forge"
-					],
+				"_id": {
+					"$ref": "#/definitions/WorldId",
+					"description": "The unique Datasworn ID for this node."
+				},
+				"_comment": {
+					"$ref": "#/definitions/Documentation"
+				},
+				"name": {
+					"description": "The primary name/label for this node.",
 					"$ref": "#/definitions/Label"
+				},
+				"canonical_name": {
+					"description": "The name of this node as it appears on the page in the book, if it's different from `name`.",
+					"$ref": "#/definitions/Label"
+				},
+				"_source": {
+					"description": "Attribution for the original source (such as a book or website) of this node, including the author and licensing information.",
+					"$ref": "#/definitions/SourceInfo"
+				},
+				"suggestions": {
+					"$ref": "#/definitions/Suggestions"
+				},
+				"tags": {
+					"$ref": "#/definitions/Tags"
+				},
+				"replaces": {
+					"description": "This node replaces all nodes that match these wildcards. References to the replaced nodes can be considered equivalent to this node.",
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/WorldIdWildcard"
+					}
+				},
+				"color": {
+					"description": "An optional thematic color associated with this node. For an example, see \"Basic Creature Form\" (Starforged p. 337).",
+					"$ref": "#/definitions/CssColor"
+				},
+				"images": {
+					"type": "array",
+					"items": {
+						"description": "Extra images associated with this node.",
+						"$ref": "#/definitions/WebpImageUrl"
+					}
+				},
+				"icon": {
+					"description": "An SVG icon associated with this collection.",
+					"$ref": "#/definitions/SvgImageUrl"
 				},
 				"truths": {
 					"minItems": 1,
 					"uniqueItems": true,
+					"description": "The set of setting truths that make up this world, in presentation order.",
 					"type": "array",
 					"items": {
 						"$ref": "#/definitions/TruthId"
 					}
+				},
+				"type": {
+					"const": "world",
+					"type": "string"
 				}
 			}
+		},
+		"WorldId": {
+			"title": "WorldId",
+			"description": "A unique ID representing a World object.",
+			"pattern": "^world:([a-z][a-z0-9_]*\\/[a-z][a-z0-9_]*)$",
+			"type": "string"
+		},
+		"WorldIdWildcard": {
+			"title": "WorldIdWildcard",
+			"description": "A wildcarded WorldId that can be used to match multiple World objects.",
+			"pattern": "^world:((?:[a-z][a-z0-9_]*|\\*)\\/[a-z][a-z0-9_]*|\\/\\*|\\/\\*\\*)$",
+			"type": "string"
 		}
 	}
 }

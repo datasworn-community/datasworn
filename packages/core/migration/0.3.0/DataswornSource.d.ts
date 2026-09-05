@@ -26,12 +26,12 @@ export type ActionRollMethod = "miss" | "weak_hit" | "strong_hit" | "player_choi
 /**
  * Represents any kind of non-wildcard ID, including IDs of embedded objects.
  */
-export type AnyId = AtlasEntryId | NpcId | NpcVariantId | OracleRollableId | AssetAbilityOracleRollableId | MoveOracleRollableId | TruthOptionOracleRollableId | OracleRollableRowId | AssetAbilityOracleRollableRowId | MoveOracleRollableRowId | TruthOptionOracleRollableRowId | AssetId | AssetAbilityId | AssetAbilityMoveId | MoveId | AssetAbilityMoveConditionId | MoveConditionId | AssetAbilityMoveOutcomeId | MoveOutcomeId | AtlasCollectionId | NpcCollectionId | OracleCollectionId | AssetCollectionId | MoveCategoryId | DelveSiteId | DelveSiteDenizenId | DelveSiteDomainId | DelveSiteDomainFeatureId | DelveSiteThemeFeatureId | DelveSiteDomainDangerId | DelveSiteThemeDangerId | DelveSiteThemeId | RarityId | TruthId | TruthOptionId
+export type AnyId = AtlasEntryId | NpcId | NpcVariantId | OracleRollableId | AssetAbilityOracleRollableId | MoveOracleRollableId | TruthOptionOracleRollableId | OracleRollableRowId | AssetAbilityOracleRollableRowId | MoveOracleRollableRowId | TruthOptionOracleRollableRowId | AssetId | AssetAbilityId | AssetAbilityMoveId | MoveId | AssetAbilityMoveConditionId | MoveConditionId | AssetAbilityMoveOutcomeId | MoveOutcomeId | AtlasCollectionId | NpcCollectionId | OracleCollectionId | AssetCollectionId | MoveCategoryId | DelveSiteId | DelveSiteDenizenId | DelveSiteDomainId | DelveSiteDomainFeatureId | DelveSiteThemeFeatureId | DelveSiteDomainDangerId | DelveSiteThemeDangerId | DelveSiteThemeId | RarityId | TruthId | TruthOptionId | WorldId
 
 /**
  * Represents any kind of wildcard ID, including IDs of embedded objects.
  */
-export type AnyIdWildcard = AtlasEntryIdWildcard | NpcIdWildcard | NpcVariantIdWildcard | OracleRollableIdWildcard | AssetAbilityOracleRollableIdWildcard | MoveOracleRollableIdWildcard | TruthOptionOracleRollableIdWildcard | OracleRollableRowIdWildcard | AssetAbilityOracleRollableRowIdWildcard | MoveOracleRollableRowIdWildcard | TruthOptionOracleRollableRowIdWildcard | AssetIdWildcard | AssetAbilityIdWildcard | AssetAbilityMoveIdWildcard | MoveIdWildcard | AssetAbilityMoveConditionIdWildcard | MoveConditionIdWildcard | AssetAbilityMoveOutcomeIdWildcard | MoveOutcomeIdWildcard | AtlasCollectionIdWildcard | NpcCollectionIdWildcard | OracleCollectionIdWildcard | AssetCollectionIdWildcard | MoveCategoryIdWildcard | DelveSiteIdWildcard | DelveSiteDenizenIdWildcard | DelveSiteDomainIdWildcard | DelveSiteDomainFeatureIdWildcard | DelveSiteThemeFeatureIdWildcard | DelveSiteDomainDangerIdWildcard | DelveSiteThemeDangerIdWildcard | DelveSiteThemeIdWildcard | RarityIdWildcard | TruthIdWildcard | TruthOptionIdWildcard
+export type AnyIdWildcard = AtlasEntryIdWildcard | NpcIdWildcard | NpcVariantIdWildcard | OracleRollableIdWildcard | AssetAbilityOracleRollableIdWildcard | MoveOracleRollableIdWildcard | TruthOptionOracleRollableIdWildcard | OracleRollableRowIdWildcard | AssetAbilityOracleRollableRowIdWildcard | MoveOracleRollableRowIdWildcard | TruthOptionOracleRollableRowIdWildcard | AssetIdWildcard | AssetAbilityIdWildcard | AssetAbilityMoveIdWildcard | MoveIdWildcard | AssetAbilityMoveConditionIdWildcard | MoveConditionIdWildcard | AssetAbilityMoveOutcomeIdWildcard | MoveOutcomeIdWildcard | AtlasCollectionIdWildcard | NpcCollectionIdWildcard | OracleCollectionIdWildcard | AssetCollectionIdWildcard | MoveCategoryIdWildcard | DelveSiteIdWildcard | DelveSiteDenizenIdWildcard | DelveSiteDomainIdWildcard | DelveSiteDomainFeatureIdWildcard | DelveSiteThemeFeatureIdWildcard | DelveSiteDomainDangerIdWildcard | DelveSiteThemeDangerIdWildcard | DelveSiteThemeIdWildcard | RarityIdWildcard | TruthIdWildcard | TruthOptionIdWildcard | WorldIdWildcard
 
 export type AnyMove = Move | EmbeddedMove
 
@@ -3008,7 +3008,7 @@ export interface MoveSpecialTrackEnhancement {
 	trigger?: TriggerSpecialTrackEnhancement;
 }
 
-export type NonCollectableType = "delve_site" | "delve_site_domain" | "delve_site_theme" | "rarity" | "truth"
+export type NonCollectableType = "delve_site" | "delve_site_domain" | "delve_site_theme" | "rarity" | "truth" | "world"
 
 /**
  * A non-player character entry, similar to those in Chapter 5 of the Ironsworn Rulebook, or Chapter 4 of Starforged.
@@ -4854,7 +4854,7 @@ export type Suggestions = AnyIdWildcard[]
  */
 export type SvgImageUrl = string
 
-export type Tag = boolean | number | DictKey | DiceExpression | AtlasEntryId | NpcId | OracleRollableId | AssetId | MoveId | AtlasCollectionId | NpcCollectionId | OracleCollectionId | AssetCollectionId | MoveCategoryId | DelveSiteId | DelveSiteDomainId | DelveSiteThemeId | RarityId | TruthId | Array<AtlasEntryIdWildcard | NpcIdWildcard | OracleRollableIdWildcard | AssetIdWildcard | MoveIdWildcard | AtlasCollectionIdWildcard | NpcCollectionIdWildcard | OracleCollectionIdWildcard | AssetCollectionIdWildcard | MoveCategoryIdWildcard | DelveSiteIdWildcard | DelveSiteDomainIdWildcard | DelveSiteThemeIdWildcard | RarityIdWildcard | TruthIdWildcard>
+export type Tag = boolean | number | DictKey | DiceExpression | AtlasEntryId | NpcId | OracleRollableId | AssetId | MoveId | AtlasCollectionId | NpcCollectionId | OracleCollectionId | AssetCollectionId | MoveCategoryId | DelveSiteId | DelveSiteDomainId | DelveSiteThemeId | RarityId | TruthId | WorldId | Array<AtlasEntryIdWildcard | NpcIdWildcard | OracleRollableIdWildcard | AssetIdWildcard | MoveIdWildcard | AtlasCollectionIdWildcard | NpcCollectionIdWildcard | OracleCollectionIdWildcard | AssetCollectionIdWildcard | MoveCategoryIdWildcard | DelveSiteIdWildcard | DelveSiteDomainIdWildcard | DelveSiteThemeIdWildcard | RarityIdWildcard | TruthIdWildcard | WorldIdWildcard>
 
 export type TaggableNodeType = CollectableType | NonCollectableType | CollectionType | EmbedOnlyType | RuleType
 
@@ -5300,10 +5300,56 @@ export type WebUrl = string
  */
 export interface World {
 	/**
-	 * The player-facing name of this world.
-	 * @example "The Ironlands"
-	 * @example "The Forge"
+	 * The unique Datasworn ID for this node.
 	 */
-	label: Label;
+	_id?: WorldId;
+	_comment?: Documentation;
+	/**
+	 * The primary name/label for this node.
+	 */
+	name: Label;
+	/**
+	 * The name of this node as it appears on the page in the book, if it's different from `name`.
+	 */
+	canonical_name?: Label;
+	/**
+	 * Attribution for the original source (such as a book or website) of this node, including the author and licensing information.
+	 */
+	_source: SourceInfo;
+	suggestions?: Suggestions;
+	tags?: Tags;
+	/**
+	 * This node replaces all nodes that match these wildcards. References to the replaced nodes can be considered equivalent to this node.
+	 */
+	replaces?: WorldIdWildcard[];
+	/**
+	 * An optional thematic color associated with this node. For an example, see "Basic Creature Form" (Starforged p. 337).
+	 */
+	color?: CssColor;
+	images?: WebpImageUrl[];
+	/**
+	 * An SVG icon associated with this collection.
+	 */
+	icon?: SvgImageUrl;
+	/**
+	 * The set of setting truths that make up this world, in presentation order.
+	 */
 	truths: TruthId[];
+	type: "world";
 }
+
+/**
+ * A unique ID representing a World object.
+ * @pattern ```javascript
+ * /^world:([a-z][a-z0-9_]*\/[a-z][a-z0-9_]*)$/
+ * ```
+ */
+export type WorldId = string
+
+/**
+ * A wildcarded WorldId that can be used to match multiple World objects.
+ * @pattern ```javascript
+ * /^world:((?:[a-z][a-z0-9_]*|\*)\/[a-z][a-z0-9_]*|\/\*|\/\*\*)$/
+ * ```
+ */
+export type WorldIdWildcard = string
