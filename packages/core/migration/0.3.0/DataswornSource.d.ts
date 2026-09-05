@@ -5304,6 +5304,6 @@ export interface World {
 	 * @example "The Ironlands"
 	 * @example "The Forge"
 	 */
-	name: Label;
+	label: Label;
 	truths: TruthId[];
 }

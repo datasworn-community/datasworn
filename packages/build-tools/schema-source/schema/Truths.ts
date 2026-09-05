@@ -8,7 +8,7 @@ import { EmbeddedOracleRollable } from './oracles/EmbeddedOracleRollable.js'
 
 export const World = Type.Object(
 	{
-		name: Type.Ref(Text.Label, {
+		label: Type.Ref(Text.Label, {
 			description: 'The player-facing name of this world.',
 			examples: ['The Ironlands', 'The Forge']
 		}),

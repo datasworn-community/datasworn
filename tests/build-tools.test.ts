@@ -322,11 +322,11 @@ describe('@datasworn-community/build-tools', () => {
 		},
 		worlds: {
 			first: {
-				name: 'The First World',
+				label: 'The First World',
 				truths: ['truth:fixture/origin', 'truth:fixture/legacy']
 			},
 			second: {
-				name: 'The Second World',
+				label: 'The Second World',
 				truths: ['truth:fixture/legacy']
 			}
 		}
@@ -341,7 +341,7 @@ describe('@datasworn-community/build-tools', () => {
 		const data = result.data
 		if (data.worlds == null) throw new Error('Expected worlds')
 
-		expect(data.worlds.first.name).toBe('The First World')
+		expect(data.worlds.first.label).toBe('The First World')
 		expect(data.worlds.first.truths).toEqual([
 			'truth:fixture/origin',
 			'truth:fixture/legacy'
@@ -357,7 +357,7 @@ describe('@datasworn-community/build-tools', () => {
 		) as Datasworn.RulesPackage
 		if (emitted.worlds == null) throw new Error('Expected emitted worlds')
 		expect(emitted.worlds.first).toEqual({
-			name: 'The First World',
+			label: 'The First World',
 			truths: ['truth:fixture/origin', 'truth:fixture/legacy']
 		})
 	})
@@ -368,7 +368,7 @@ describe('@datasworn-community/build-tools', () => {
 		await writeMinimalRuleset(sourceDir, 'fixture', {
 			worlds: {
 				forge: {
-					name: 'The Forge',
+					label: 'The Forge',
 					truths: ['truth:fixture/origin', 'truth:fixture/origin']
 				}
 			}
@@ -383,7 +383,7 @@ describe('@datasworn-community/build-tools', () => {
 		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-worlds-'))
 		const sourceDir = path.join(workDir, 'source')
 		await writeMinimalRuleset(sourceDir, 'fixture', {
-			worlds: { forge: { name: 'The Forge', truths: [] } }
+			worlds: { forge: { label: 'The Forge', truths: [] } }
 		})
 
 		expect(
@@ -391,7 +391,7 @@ describe('@datasworn-community/build-tools', () => {
 		).rejects.toThrow('must NOT have fewer than 1 items')
 	})
 
-	test('rejects a world without a name', async () => {
+	test('rejects a world without a label', async () => {
 		const workDir = await mkdtemp(path.join(tmpdir(), 'datasworn-worlds-'))
 		const sourceDir = path.join(workDir, 'source')
 		await writeMinimalRuleset(sourceDir, 'fixture', {
@@ -400,7 +400,7 @@ describe('@datasworn-community/build-tools', () => {
 
 		expect(
 			buildRulesPackage({ id: 'fixture', type: 'ruleset', source: sourceDir })
-		).rejects.toThrow("must have required property 'name'")
+		).rejects.toThrow("must have required property 'label'")
 	})
 
 	test('resolves world truths from a declared dependency', async () => {
@@ -408,7 +408,7 @@ describe('@datasworn-community/build-tools', () => {
 		const sourceDir = path.join(workDir, 'source')
 		await writeMinimalRuleset(sourceDir, 'fixture', {
 			worlds: {
-				forge: { name: 'The Forge', truths: ['truth:base/origin'] }
+				forge: { label: 'The Forge', truths: ['truth:base/origin'] }
 			}
 		})
 		const dependency = {
@@ -434,7 +434,7 @@ describe('@datasworn-community/build-tools', () => {
 		const sourceDir = path.join(workDir, 'source')
 		await writeMinimalRuleset(sourceDir, 'fixture', {
 			worlds: {
-				forge: { name: 'The Forge', truths: ['truth:fixture/missing'] }
+				forge: { label: 'The Forge', truths: ['truth:fixture/missing'] }
 			}
 		})
 

@@ -11443,11 +11443,11 @@
 			"description": "A named world and its associated set of setting truths.",
 			"type": "object",
 			"required": [
-				"name",
+				"label",
 				"truths"
 			],
 			"properties": {
-				"name": {
+				"label": {
 					"description": "The player-facing name of this world.",
 					"examples": [
 						"The Ironlands",
