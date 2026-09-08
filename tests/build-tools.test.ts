@@ -710,6 +710,10 @@ oracles:
         name: First
         type: oracle_rollable
         oracle_type: table_text
+        # 1d1 so the single shared row covers the whole range. This fixture
+        # is about YAML alias materialization, not roll ranges; with the
+        # default 1d100 a lone 1-1 row leaves 2..100 unreachable.
+        dice: '1d1'
         _source: *Source
         rows:
           - &SharedRow
@@ -719,6 +723,10 @@ oracles:
         name: Second
         type: oracle_rollable
         oracle_type: table_text
+        # 1d1 so the single shared row covers the whole range. This fixture
+        # is about YAML alias materialization, not roll ranges; with the
+        # default 1d100 a lone 1-1 row leaves 2..100 unreachable.
+        dice: '1d1'
         _source: *Source
         rows:
           - *SharedRow
