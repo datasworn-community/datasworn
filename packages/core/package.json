@@ -1,6 +1,6 @@
 {
   "name": "@datasworn-community/core",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Core Datasworn runtime types, schema artifacts, and ID helpers.",
   "type": "module",
   "main": "./dist/cjs/index.js",
