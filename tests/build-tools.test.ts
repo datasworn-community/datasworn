@@ -207,6 +207,77 @@ describe('@datasworn-community/build-tools', () => {
 		).toThrow('greater than the maximum possible roll of 1d6 (6)')
 	})
 
+	test('rejects a table whose rows stop short of the dice maximum', () => {
+		// The gap the adjacency check cannot see. Every row here is inside the
+		// bounds and every pair is sequential -- the table simply never covers
+		// 100, so a roll of 100 selects nothing. Measured before this rule
+		// existed: changing a real 1d100 table's last row from 96-100 to 96-99
+		// left the build green.
+		expect(() =>
+			validateOracleRollable({
+				dice: '1d100',
+				rows: [
+					{ roll: { min: 1, max: 50 }, text: 'Low' },
+					{ roll: { min: 51, max: 99 }, text: 'High' }
+				]
+			} as Datasworn.OracleRollable)
+		).toThrow(
+			'last numbered row ends at 99, but the maximum possible roll of 1d100 is 100'
+		)
+	})
+
+	test('rejects a table whose rows start above the dice minimum', () => {
+		// The same gap at the other end, and the reason the rule is two checks
+		// rather than one: adjacency is only ever evaluated between rows, so
+		// neither end is constrained by it.
+		expect(() =>
+			validateOracleRollable({
+				dice: '1d6',
+				rows: [{ roll: { min: 2, max: 6 }, text: 'Missing the 1' }]
+			} as Datasworn.OracleRollable)
+		).toThrow(
+			'first numbered row starts at 2, but the minimum possible roll of 1d6 is 1'
+		)
+	})
+
+	test('accepts a table that covers its dice range exactly', () => {
+		// The control. Without it the two rules above are satisfied by a
+		// validator that rejects everything.
+		expect(
+			validateOracleRollable({
+				dice: '1d6',
+				rows: [
+					{ roll: { min: 1, max: 3 }, text: 'Low' },
+					{ roll: { min: 4, max: 6 }, text: 'High' }
+				]
+			} as Datasworn.OracleRollable)
+		).toBe(true)
+	})
+
+	test('applies the bounds a modifier moves, not the bare dice bounds', () => {
+		// diceRange() already accounts for modifiers (min = count + modifier,
+		// max = count * sides + modifier). Pinned so the completeness rule is
+		// never "simplified" to 1..sides.
+		expect(
+			validateOracleRollable({
+				dice: '1d6+2',
+				rows: [{ roll: { min: 3, max: 8 }, text: 'Shifted' }]
+			} as Datasworn.OracleRollable)
+		).toBe(true)
+	})
+
+	test('leaves a table with no numbered rows alone', () => {
+		// Unnumbered rows are legitimate (shared-roll children carry text only),
+		// so "covers the whole range" must not be asserted when there is nothing
+		// numbered to cover it with.
+		expect(
+			validateOracleRollable({
+				dice: '1d100',
+				rows: [{ text: 'No roll on this row' }]
+			} as unknown as Datasworn.OracleRollable)
+		).toBe(true)
+	})
+
 	test('rejects mismatched roll ranges in table_shared_rolls children', () => {
 		expect(() =>
 			validateOracleCollection({
@@ -639,6 +710,10 @@ oracles:
         name: First
         type: oracle_rollable
         oracle_type: table_text
+        # 1d1 so the single shared row covers the whole range. This fixture
+        # is about YAML alias materialization, not roll ranges; with the
+        # default 1d100 a lone 1-1 row leaves 2..100 unreachable.
+        dice: '1d1'
         _source: *Source
         rows:
           - &SharedRow
@@ -648,6 +723,10 @@ oracles:
         name: Second
         type: oracle_rollable
         oracle_type: table_text
+        # 1d1 so the single shared row covers the whole range. This fixture
+        # is about YAML alias materialization, not roll ranges; with the
+        # default 1d100 a lone 1-1 row leaves 2..100 unreachable.
+        dice: '1d1'
         _source: *Source
         rows:
           - *SharedRow

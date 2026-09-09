@@ -65,6 +65,28 @@ export function validateOracleRollable(
 			)
 	}
 
+	// The two ends. Everything above constrains rows against each other or
+	// against the bounds individually, and none of it can see a table that is
+	// internally consistent but stops short: 1-50, 51-99 on a 1d100 is in
+	// bounds and sequential, and a roll of 100 selects nothing.
+	//
+	// Skipped when nothing is numbered. Rows without a roll are legitimate --
+	// table_shared_rolls children carry text and inherit their ranges -- so
+	// asserting coverage there would reject valid content.
+	if (numberedRows.length > 0) {
+		const first = numberedRows[0].row.roll
+		const last = numberedRows[numberedRows.length - 1].row.roll
+
+		if (first.min !== possible.min)
+			throw new Error(
+				`first numbered row starts at ${first.min}, but the minimum possible roll of ${oracle.dice} is ${possible.min}`
+			)
+		if (last.max !== possible.max)
+			throw new Error(
+				`last numbered row ends at ${last.max}, but the maximum possible roll of ${oracle.dice} is ${possible.max}`
+			)
+	}
+
 	return true
 }
 
