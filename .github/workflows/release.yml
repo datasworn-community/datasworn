@@ -194,8 +194,8 @@ jobs:
         run: bun run validate
 
       # The plan covers every commit since the last release, not only this
-      # push: a run that does not release leaves its commits to the next one,
-      # and they count towards that release.
+      # push: a run that stops because main moved on (below) leaves its
+      # commits to the next run, and they count towards that release.
       - name: Find the last release
         id: last
         run: echo "tag=$(git describe --tags --abbrev=0 --match 'v*' HEAD 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
@@ -208,8 +208,26 @@ jobs:
           RELEASE_HEAD_SHA: ${{ github.sha }}
         run: bun ./scripts/releasePlan.ts plan-main
 
-      - name: Configure Git
+      # Two merges a few seconds apart start two runs. The older one would push
+      # its release commit onto a main that has moved on, and the push would be
+      # rejected. It stops here instead, and the run for the newer push releases
+      # everything since the last release.
+      - name: Check main has not moved on
+        id: tip
         if: steps.plan.outputs.release == 'true'
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin main
+          tip="$(git rev-parse origin/main)"
+          if [[ "${tip}" == "${GITHUB_SHA}" ]]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::main moved on to ${tip:0:7}; the run for that push releases everything since the last release."
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure Git
+        if: steps.plan.outputs.release == 'true' && steps.tip.outputs.current == 'true'
         env:
           APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -220,13 +238,13 @@ jobs:
           git config user.email "${user_id}+${APP_SLUG}[bot]@users.noreply.github.com"
 
       - name: Release
-        if: steps.plan.outputs.release == 'true'
+        if: steps.plan.outputs.release == 'true' && steps.tip.outputs.current == 'true'
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: bunx release-it "${{ steps.plan.outputs.version }}" --ci
 
       - name: Setup Node for npm publishing
-        if: steps.plan.outputs.release == 'true'
+        if: steps.plan.outputs.release == 'true' && steps.tip.outputs.current == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "24"
@@ -234,14 +252,14 @@ jobs:
           package-manager-cache: false
 
       - name: Setup npm
-        if: steps.plan.outputs.release == 'true'
+        if: steps.plan.outputs.release == 'true' && steps.tip.outputs.current == 'true'
         run: |
           npm install --global npm@latest
           npm config set registry https://registry.npmjs.org/
           npm --version
 
       - name: Publish packages
-        if: steps.plan.outputs.release == 'true'
+        if: steps.plan.outputs.release == 'true' && steps.tip.outputs.current == 'true'
         uses: ./.github/actions/publish-workspaces
         with:
           mode: release
