@@ -193,11 +193,18 @@ jobs:
       - name: Validate
         run: bun run validate
 
+      # The plan covers every commit since the last release, not only this
+      # push: a run that does not release leaves its commits to the next one,
+      # and they count towards that release.
+      - name: Find the last release
+        id: last
+        run: echo "tag=$(git describe --tags --abbrev=0 --match 'v*' HEAD 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
+
       - name: Plan release
         id: plan
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_BASE_SHA: ${{ github.event.before }}
+          RELEASE_BASE_SHA: ${{ steps.last.outputs.tag || github.event.before }}
           RELEASE_HEAD_SHA: ${{ github.sha }}
         run: bun ./scripts/releasePlan.ts plan-main
 
