@@ -5,6 +5,8 @@ import { promisify } from 'node:util'
 
 import { DATASWORN_SCHEMA_VERSION } from '@datasworn-community/core'
 
+import { combineReleaseLabels, type PullRequestReleaseLabels } from './releaseLabels.js'
+
 const execFileAsync = promisify(execFile)
 
 const schemaReleaseLabels = ['release:minor-schema', 'release:major-schema']
@@ -119,6 +121,53 @@ async function labelsFromAssociatedPullRequest(): Promise<string[]> {
 		.split('\n')
 		.map((label) => label.trim())
 		.filter(Boolean)
+}
+
+// Every pull request merged into main since RELEASE_BASE_SHA, the last release
+// tag, found through the first-parent commits that merged them.
+async function pullRequestsSinceBase(): Promise<PullRequestReleaseLabels[]> {
+	const repository = process.env.GITHUB_REPOSITORY
+	const token = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN
+	const base = process.env.RELEASE_BASE_SHA
+	const head = process.env.RELEASE_HEAD_SHA ?? 'HEAD'
+	if (!repository || !token || !base) return []
+
+	const commits = (await git(['rev-list', '--first-parent', `${base}..${head}`]))
+		.split('\n')
+		.filter(Boolean)
+	const pullRequests = new Map<number, PullRequestReleaseLabels>()
+	for (const sha of commits) {
+		const { stdout } = await execFileAsync(
+			'gh',
+			[
+				'api',
+				`repos/${repository}/commits/${sha}/pulls`,
+				'--header',
+				'Accept: application/vnd.github+json',
+				'--jq',
+				'.[0] | select(. != null) | {number, labels: [.labels[].name]}'
+			],
+			{ env: { ...process.env, GH_TOKEN: token } }
+		)
+		if (!stdout.trim()) continue
+
+		const { number, labels } = JSON.parse(stdout) as { number: number; labels: string[] }
+		if (!pullRequests.has(number))
+			pullRequests.set(number, {
+				number,
+				labels: labels.filter((label) => releaseLabels.includes(label))
+			})
+	}
+
+	return [...pullRequests.values()]
+}
+
+// A release from main acts on every pull request merged since the last
+// release, not only on the one behind this push: a run that stopped because
+// main moved on leaves its pull requests to the next run.
+async function releaseLabelsForMain(): Promise<string[]> {
+	if (!process.env.RELEASE_BASE_SHA) return releaseLabelsFromEnvironment()
+	return combineReleaseLabels(await pullRequestsSinceBase())
 }
 
 async function releaseLabelsFromEnvironment(): Promise<string[]> {
@@ -270,7 +319,7 @@ async function planMainRelease(): Promise<void> {
 	}
 
 	const files = await changedFiles()
-	const labels = await releaseLabelsFromEnvironment()
+	const labels = await releaseLabelsForMain()
 	assertReleaseLabelsUnambiguous(labels)
 	const currentVersion = await currentPackageVersion()
 	const schemaImpact = hasSchemaImpact(files)
