@@ -59,7 +59,7 @@
   "devDependencies": {
     "@datasworn-community/core": "workspace:*",
     "json-schema": "^0.4.0",
-    "json-schema-library": "^11.6.2",
+    "json-schema-library": "^11.6.6",
     "type-fest": "^5.10.0"
   },
   "bugs": {
